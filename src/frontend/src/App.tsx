@@ -5,6 +5,7 @@ import TopBar from "./components/TopBar";
 import DashBoard from "./pages/DashBoard";
 import UpdateModal from './pages/UpdateModal';
 import Colleges from './pages/Colleges';
+import SignIn from "./pages/SignIn";
 
 function AppInner() {
   const location = useLocation();
@@ -17,6 +18,7 @@ function AppInner() {
       <Routes location={state?.backgroundLocation || location}>
         <Route path="/" element={<DashBoard />} />
         <Route path="/colleges" element={<Colleges />} />
+        <Route path="/signin" element={<SignIn />} />  
       </Routes>
 
       {/* When a background location is set, render the modal on top */}
