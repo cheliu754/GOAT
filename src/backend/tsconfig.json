@@ -1,0 +1,15 @@
+{
+  "extends": "@tsconfig/node22/tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src/backend/src",
+    "outDir": "src/backend/dict",
+
+    "baseUrl": ".",
+    "paths": {
+      "@backend/*": ["src/backend/*"],
+      "@shared/*": ["src/shared/*"]
+    }
+  },
+  "include": ["src/backend"],
+  "exclude": ["node_modules", "dist"]
+}
