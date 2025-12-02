@@ -4,7 +4,7 @@
   --topbar-border: #e5e7eb;     /* gray-200 */
   --topbar-shadow: 0 2px 8px rgba(0,0,0,0.06);
   --btn-bg: #111827;            /* near-black */
-  --btn-text: #ffffff;
+  --btn-text: #1f2937;
   --btn-bg-hover: #1f2937;      /* gray-800 */
   --focus-ring: 0 0 0 3px rgba(59,130,246,0.45); /* blue-500 */
 }
@@ -82,4 +82,27 @@
   .topbar__inner { height: 56px; }
   .topbar__brand { font-size: 1rem; }
   .topbar__button { padding: 9px 12px; }
+}
+
+.topbar__center {
+  flex: 1;
+  max-width: 520px;
+  margin: 0 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.topbar__left,
+.topbar__right {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+
+@media (max-width: 480px) {
+  .topbar__center {
+    max-width: 100%;
+    margin: 0 8px;
+  }
 }

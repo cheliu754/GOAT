@@ -26,8 +26,8 @@
 
 /* Table-like layout */
 .table {
-  background: #fff;
-  border: 1px solid var(--border, #e5e7eb);
+  background: #111827;
+  border: 1px solid var(--border, #1f2937);
   border-radius: 14px;
   box-shadow: var(--shadow, 0 6px 14px rgba(2,8,23,0.08));
   overflow: hidden;
@@ -41,7 +41,7 @@
 }
 
 .table__header {
-  background: #f8fafc;
+  background: #075aad;
   color: var(--muted, #475569);
   font-weight: 700;
   border-bottom: 1px solid var(--border, #e5e7eb);
