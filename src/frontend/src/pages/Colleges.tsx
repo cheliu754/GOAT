@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import SearchBar, { Suggestion } from "../components/SearchBar";
 import "./Colleges.css";
+import { useNavigate } from "react-router-dom";
 
 type College = {
   _id: string;
@@ -9,12 +10,13 @@ type College = {
   STABBR: string;
 };
 
+
 export default function Colleges() {
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<College[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
-  // When user types
+  // When the user types
   const handleChange = async (value: string) => {
     setQuery(value);
 
@@ -30,10 +32,8 @@ export default function Colleges() {
       );
       const data = await res.json();
 
-      // Update table rows
       setRows(data);
 
-      // Dropdown suggestions
       setSuggestions(
         data.slice(0, 8).map((c: College) => ({
           id: c._id,
@@ -46,14 +46,39 @@ export default function Colleges() {
     }
   };
 
-  // When submitting (press Enter or Search button)
   const handleSubmit = (value: string) => {
     handleChange(value);
   };
 
-  const handleAdd = (college: College) => {
-    alert(`Added "${college.INSTNM}"`);
-  };
+  const navigate = useNavigate();
+  const handleAdd = async (college: College) => {
+  try {
+    console.log("Adding:", college);
+
+    const res = await fetch("http://localhost:4000/api/saved", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        INSTNM: college.INSTNM,
+        CITY: college.CITY,
+        STABBR: college.STABBR,
+      }),
+    });
+
+    if (!res.ok) throw new Error("Failed to add");
+
+    const saved = await res.json();
+    alert(`Added "${saved.INSTNM}" successfully!`);
+  } catch (err) {
+    console.error("Add college failed:", err);
+    alert("Failed to add college");
+  }
+};
+
+
+
 
   return (
     <main className="colleges">

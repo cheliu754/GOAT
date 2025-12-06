@@ -20,9 +20,15 @@
   outline: none;
   height: 36px;
   font-size: 0.95rem;
-  color: var(--text, #1f2937);
+  color: #0f172a; /* 强制深色字体 */
   background: transparent;
 }
+
+.search__input::placeholder {
+  color: #475569; /* 深灰 placeholder */
+  opacity: 1;
+}
+
 
 .search__clear {
   border: 0;
@@ -64,7 +70,8 @@
   padding: 8px 10px;
   border-radius: 8px;
   cursor: pointer;
-  color: var(--text, #0f172a);
+  color: #0f172a !important;   
+  font-weight: 500;            
 }
 .search__item.is-active .search__pick,
 .search__pick:hover { background: #f1f5f9; }

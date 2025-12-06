@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const CollegeSchema = new mongoose.Schema({
   INSTNM: String,
@@ -11,4 +11,4 @@ const CollegeSchema = new mongoose.Schema({
   SAT_AVG: Number,
 });
 
-export default mongoose.model("College", CollegeSchema);
+module.exports = mongoose.model("College", CollegeSchema);
