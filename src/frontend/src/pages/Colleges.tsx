@@ -1,22 +1,27 @@
 import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import SearchBar, { Suggestion } from "../components/SearchBar";
 import "./Colleges.css";
-import { useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthProvider"; // TODO(auth)
 
 type College = {
   _id: string;
   INSTNM: string;
   CITY: string;
   STABBR: string;
+  SAVED?: boolean;
 };
-
 
 export default function Colleges() {
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<College[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
-  // When the user types
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const uid = user?.uid ?? null;
+
   const handleChange = async (value: string) => {
     setQuery(value);
 
@@ -28,14 +33,16 @@ export default function Colleges() {
 
     try {
       const res = await fetch(
-        `http://localhost:4000/api/colleges/search?q=${encodeURIComponent(value)}`
+        `http://localhost:4000/api/colleges/search?q=${encodeURIComponent(
+          value
+        )}&uid=${uid ?? ""}`
       );
-      const data = await res.json();
+      const data: College[] = await res.json();
 
       setRows(data);
 
       setSuggestions(
-        data.slice(0, 8).map((c: College) => ({
+        data.slice(0, 8).map((c) => ({
           id: c._id,
           label: c.INSTNM,
           value: c.INSTNM,
@@ -50,35 +57,45 @@ export default function Colleges() {
     handleChange(value);
   };
 
-  const navigate = useNavigate();
-  const handleAdd = async (college: College) => {
-  try {
-    console.log("Adding:", college);
+  const handleAddOrUpdate = async (college: College) => {
+    if (!user) {
+      navigate("/signin");
+      return;
+    }
 
-    const res = await fetch("http://localhost:4000/api/saved", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        INSTNM: college.INSTNM,
-        CITY: college.CITY,
-        STABBR: college.STABBR,
-      }),
-    });
+    if (college.SAVED) {
+      navigate("/update", {
+        state: { backgroundLocation: location, school: college },
+      });
+      return;
+    }
 
-    if (!res.ok) throw new Error("Failed to add");
+    try {
+      const res = await fetch("http://localhost:4000/api/saved", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid,
+          INSTNM: college.INSTNM,
+          CITY: college.CITY,
+          STABBR: college.STABBR,
+        }),
+      });
 
-    const saved = await res.json();
-    alert(`Added "${saved.INSTNM}" successfully!`);
-  } catch (err) {
-    console.error("Add college failed:", err);
-    alert("Failed to add college");
-  }
-};
+      if (!res.ok) throw new Error("Failed to add");
 
+      const updated = { ...college, SAVED: true };
+      setRows((prev) =>
+        prev.map((c) => (c._id === college._id ? updated : c))
+      );
 
-
+      navigate("/update", {
+        state: { backgroundLocation: location, school: updated },
+      });
+    } catch (err) {
+      console.error("Add failed:", err);
+    }
+  };
 
   return (
     <main className="colleges">
@@ -110,12 +127,14 @@ export default function Colleges() {
               <div className="td">{c.INSTNM}</div>
               <div className="td">{c.CITY}</div>
               <div className="td">{c.STABBR}</div>
+
               <div className="td td--actions">
                 <button
                   className="btn btn--outline"
-                  onClick={() => handleAdd(c)}
+                  type="button"
+                  onClick={() => handleAddOrUpdate(c)}
                 >
-                  Add
+                  {c.SAVED ? "Update" : "Add"}
                 </button>
               </div>
             </div>
@@ -129,6 +148,7 @@ export default function Colleges() {
             </div>
           )}
         </div>
+
       </section>
     </main>
   );

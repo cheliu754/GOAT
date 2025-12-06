@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./UpdateModal.css";
 
-import { auth } from "../auth/firebaseConfig";         
-import { onAuthStateChanged } from "firebase/auth";    
+import { auth } from "../auth/firebaseConfig";
+import { onAuthStateChanged } from "firebase/auth";
 
 type CustomFieldType = "text" | "number" | "flag";
 type CustomField = {
@@ -13,20 +13,33 @@ type CustomField = {
   value: string | number | boolean;
 };
 
+type SchoolFromRoute = {
+  _id: string;
+  INSTNM: string;
+  CITY?: string;
+  STABBR?: string;
+  DEADLINE?: string;
+  WEBSITE?: string;
+  NOTES?: string;
+  extras?: CustomField[];
+};
+
 export default function UpdateModal() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // ✅ 未登录就跳转到 /signin
+  const routeState = location.state as { school?: SchoolFromRoute } | null;
+  const school = routeState?.school;
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (!currentUser) {
-        navigate("/signin");
-      }
+      if (!currentUser) navigate("/signin");
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, [navigate]);
 
-  // Lock body scroll while modal is open
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -35,27 +48,21 @@ export default function UpdateModal() {
     };
   }, []);
 
-  // Sample form state
-  const [name, setName] = useState("Stanford University");
-  const [deadline, setDeadline] = useState<string>("2025-12-05");
-  const [location, setLocation] = useState("Stanford, CA");
-  const [website, setWebsite] = useState("https://www.stanford.edu/");
-  const [notes, setNotes] = useState("");
+  const today = new Date().toISOString().split("T")[0];
 
-  const [customFields, setCustomFields] = useState<CustomField[]>([
-    {
-      id: crypto.randomUUID(),
-      label: "SAT Requirement",
-      type: "number",
-      value: 1500,
-    },
-    {
-      id: crypto.randomUUID(),
-      label: "Enable Notification",
-      type: "flag",
-      value: true,
-    },
-  ]);
+  const [name, setName] = useState(() => school?.INSTNM ?? "");
+  const [deadline, setDeadline] = useState(() => school?.DEADLINE ?? today);
+  const [locationText, setLocationText] = useState(() => {
+    if (school?.CITY && school?.STABBR) return `${school.CITY}, ${school.STABBR}`;
+    return "";
+  });
+  const [website, setWebsite] = useState(() => school?.WEBSITE ?? "");
+  const [notes, setNotes] = useState(() => school?.NOTES ?? "");
+
+  const [customFields, setCustomFields] = useState<CustomField[]>(() => {
+    if (school?.extras) return school.extras;
+    return [];
+  });
 
   const [newLabel, setNewLabel] = useState("");
   const [newType, setNewType] = useState<CustomFieldType>("text");
@@ -63,12 +70,14 @@ export default function UpdateModal() {
 
   const addCustomField = () => {
     if (!newLabel.trim()) return;
-    const id = crypto.randomUUID();
-    const defaultValue =
-      newType === "text" ? "" : newType === "number" ? 0 : false;
     setCustomFields((prev) => [
       ...prev,
-      { id, label: newLabel.trim(), type: newType, value: defaultValue },
+      {
+        id: crypto.randomUUID(),
+        label: newLabel.trim(),
+        type: newType,
+        value: newType === "text" ? "" : newType === "number" ? 0 : false,
+      },
     ]);
     setNewLabel("");
     setNewType("text");
@@ -77,16 +86,40 @@ export default function UpdateModal() {
   const removeCustomField = (id: string) =>
     setCustomFields((prev) => prev.filter((f) => f.id !== id));
 
+  const updateFieldMeta = (
+    id: string,
+    patch: Partial<Pick<CustomField, "label" | "type">>
+  ) =>
+    setCustomFields((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, ...patch } : f))
+    );
+
   const updateFieldValue = (id: string, v: string | number | boolean) =>
     setCustomFields((prev) =>
       prev.map((f) => (f.id === id ? { ...f, value: v } : f))
     );
 
   const handleSave = () => {
-    const payload = { name, deadline, location, website, notes, extras: customFields };
+    const payload = {
+      schoolId: school?._id ?? null,
+      name,
+      deadline,
+      location: locationText,
+      website,
+      notes,
+      extras: customFields,
+    };
+
     console.log("Record saved:", payload);
+    // TODO(backend): replace with real API
     localStorage.setItem("lastUpdateRecord", JSON.stringify(payload));
-    navigate(-1); // close modal back to dashboard
+    navigate(-1);
+  };
+
+  const handleFieldUpdate = (field: CustomField) => {
+    // Placeholder for future backend patch call per-field
+    console.log("Field updated:", field);
+    // For now this just logs; full record is saved by the main Save button.
   };
 
   const close = () => navigate(-1);
@@ -135,8 +168,8 @@ export default function UpdateModal() {
                 <span className="field__label">Location</span>
                 <input
                   className="field__input"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
+                  value={locationText}
+                  onChange={(e) => setLocationText(e.target.value)}
                 />
               </label>
             </div>
@@ -165,13 +198,8 @@ export default function UpdateModal() {
           <div className="panel">
             <h2 className="panel__title">Additional Info</h2>
 
+            {/* Add-new row */}
             <div className="adder">
-              <input
-                className="field__input adder__label"
-                value={newLabel}
-                onChange={(e) => setNewLabel(e.target.value)}
-                placeholder="Field label (e.g., SAT Requirement)"
-              />
               <select
                 className="field__input adder__type"
                 value={newType}
@@ -183,66 +211,112 @@ export default function UpdateModal() {
                 <option value="number">Number</option>
                 <option value="flag">Flag (On/Off)</option>
               </select>
+
+              <input
+                className="field__input adder__label"
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                placeholder="Field name (e.g., SAT Requirement)"
+              />
+
               <button
                 className="btn"
                 onClick={addCustomField}
                 disabled={isAddDisabled}
                 type="button"
               >
-                Add More
+                Add
               </button>
             </div>
 
             <ul className="extras">
               {customFields.map((f) => (
                 <li key={f.id} className="extra">
-                  <div className="extra__row">
-                    <div className="extra__label">{f.label}</div>
-                    <button
-                      className="iconbtn"
-                      onClick={() => removeCustomField(f.id)}
-                      aria-label={`Remove ${f.label}`}
+                  <div className="extra__top">
+                    <select
+                      className="field__input extra__type"
+                      value={f.type}
+                      onChange={(e) =>
+                        updateFieldMeta(f.id, {
+                          type: e.target.value as CustomFieldType,
+                        })
+                      }
                     >
-                      ✕
-                    </button>
+                      <option value="text">Text</option>
+                      <option value="number">Number</option>
+                      <option value="flag">Flag (On/Off)</option>
+                    </select>
+
+                    <input
+                      className="field__input extra__name"
+                      value={f.label}
+                      onChange={(e) =>
+                        updateFieldMeta(f.id, { label: e.target.value })
+                      }
+                      placeholder="Field name"
+                    />
                   </div>
 
-                  {f.type === "text" && (
-                    <textarea
-                      className="field__input field__textarea"
-                      rows={3}
-                      value={(f.value as string) ?? ""}
-                      onChange={(e) =>
-                        updateFieldValue(f.id, e.target.value)
-                      }
-                      placeholder="Enter text..."
-                    />
-                  )}
-                  {f.type === "number" && (
-                    <input
-                      className="field__input"
-                      type="number"
-                      value={Number(f.value) ?? 0}
-                      onChange={(e) =>
-                        updateFieldValue(f.id, Number(e.target.value))
-                      }
-                    />
-                  )}
-                  {f.type === "flag" && (
-                    <label className="toggle">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(f.value)}
-                        onChange={(e) =>
-                          updateFieldValue(f.id, e.target.checked)
-                        }
-                      />
-                      <span className="toggle__ui" />
-                      <span className="toggle__text">
-                        {Boolean(f.value) ? "Enabled" : "Disabled"}
-                      </span>
-                    </label>
-                  )}
+                  <div className="extra__bottom">
+                    <div className="extra__value">
+                      {f.type === "text" && (
+                        <textarea
+                          className="field__input field__textarea"
+                          rows={3}
+                          value={(f.value as string) ?? ""}
+                          onChange={(e) =>
+                            updateFieldValue(f.id, e.target.value)
+                          }
+                          placeholder="Enter text..."
+                        />
+                      )}
+
+                      {f.type === "number" && (
+                        <input
+                          className="field__input"
+                          type="number"
+                          value={Number(f.value) ?? 0}
+                          onChange={(e) =>
+                            updateFieldValue(f.id, Number(e.target.value))
+                          }
+                        />
+                      )}
+
+                      {f.type === "flag" && (
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(f.value)}
+                            onChange={(e) =>
+                              updateFieldValue(f.id, e.target.checked)
+                            }
+                          />
+                          <span className="toggle__ui" />
+                          <span className="toggle__text">
+                            {Boolean(f.value) ? "Enabled" : "Disabled"}
+                          </span>
+                        </label>
+                      )}
+                    </div>
+
+                    <div className="extra__actions">
+                      <button
+                        type="button"
+                        className="btn btn--small"
+                        onClick={() => handleFieldUpdate(f)}
+                      >
+                        Update
+                      </button>
+                      <button
+                        className="iconbtn iconbtn--ghost"
+                        type="button"
+                        onClick={() => removeCustomField(f.id)}
+                        aria-label={`Remove ${f.label}`}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>

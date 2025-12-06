@@ -1,4 +1,6 @@
+// src/pages/SignIn.tsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { auth } from "../auth/firebaseConfig";
 import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "firebase/auth";
 import "./SignIn.css";
@@ -6,22 +8,28 @@ import "./SignIn.css";
 export default function SignIn() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
+
+      // once auth is successful, go back to "/"
+      if (currentUser) {
+        navigate("/", { replace: true });
+      }
     });
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const handleOAuthSignIn = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);  // 触发 OAuth2.0 登录
+    await signInWithPopup(auth, provider);
   };
 
   const handleSignOut = async () => {
-    await signOut(auth);  // 退出登录
+    await signOut(auth);
   };
 
   const displayName = user?.displayName || user?.email;
@@ -45,7 +53,6 @@ export default function SignIn() {
             Continue with Google Account
           </button>
         )}
-
       </div>
     </div>
   );

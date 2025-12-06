@@ -6,6 +6,7 @@ import DashBoard from "./pages/DashBoard";
 import UpdateModal from './pages/UpdateModal';
 import Colleges from './pages/Colleges';
 import SignIn from "./pages/SignIn";
+import { AuthProvider } from './auth/AuthProvider';
 
 function AppInner() {
   const location = useLocation();
@@ -40,8 +41,10 @@ function AppInner() {
 
 export default function App() {
   return (
-    <Router basename="/CollegeApplicationTracker">
-      <AppInner />
-    </Router>
+    <AuthProvider>
+      <Router basename="/CollegeApplicationTracker">
+        <AppInner />
+      </Router>
+    </AuthProvider>
   );
 }
