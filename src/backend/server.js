@@ -13,7 +13,7 @@ app.use(express.json());
 // 载入 routes
 const collegeRoutes = require("./routes/collegeRoutes.js");
 const savedRoutes = require("./routes/savedRoutes.js");
-const userRoutes = require("./routes/userRoutes");
+const userRoutes = require("./routes/userRoutes.js");
 
 // 注册路由
 app.use("/api/colleges", collegeRoutes);
