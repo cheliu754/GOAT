@@ -9,13 +9,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
 // 载入 routes
 const collegeRoutes = require("./routes/collegeRoutes.js");
 const savedRoutes = require("./routes/savedRoutes.js");
+const userRoutes = require("./routes/userRoutes");
 
 // 注册路由
 app.use("/api/colleges", collegeRoutes);
 app.use("/api/saved", savedRoutes);
+app.use("/api/users", userRoutes);
 
 console.log("SERVER STARTING...");
 

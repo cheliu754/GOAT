@@ -1,64 +1,160 @@
 const express = require("express");
 const router = express.Router();
 const Saved = require("../models/saved.js");
+
 console.log("🔥 savedRoutes.js LOADED");
 
-// GET saved colleges
-router.get("/", async (req, res) => {
+// ⭐ 1. Check if user already saved this school
+router.get("/check/:firebaseUid/:name", async (req, res) => {
   try {
-    const list = await Saved.find();
-    res.json(list);
+    const { firebaseUid, name } = req.params;
+
+    const exists = await Saved.findOne({ firebaseUid, name });
+
+    return res.json({
+      success: true,
+      saved: !!exists,
+      message: exists
+        ? "User already saved this record"
+        : "User has not saved this record"
+    });
+  } catch (err) {
+    console.error("Check saved error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+});
+
+// ⭐ 2. Get all records for a user
+router.get("/:firebaseUid", async (req, res) => {
+  try {
+    const list = await Saved.find({ firebaseUid: req.params.firebaseUid });
+
+    return res.json({
+      success: true,
+      data: list
+    });
   } catch (err) {
     console.error("Get saved error:", err);
-    res.status(500).json({ error: "Failed to load saved colleges" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load saved colleges"
+    });
   }
 });
 
-// ADD saved college
+// ⭐ 3. Create a new saved record
 router.post("/", async (req, res) => {
   try {
-    const { INSTNM, CITY, STABBR } = req.body;
+    const {
+      firebaseUid,
+      name,
+      deadline,
+      location,
+      website,
+      notes,
+      extras
+    } = req.body;
 
-    const saved = new Saved({ INSTNM, CITY, STABBR });
+    // Duplicate check per user
+    const exists = await Saved.findOne({ firebaseUid, name });
+    if (exists) {
+      return res.status(409).json({
+        success: false,
+        message: "You already saved this record"
+      });
+    }
+
+    const saved = new Saved({
+      firebaseUid,
+      name,
+      deadline,
+      location,
+      website,
+      notes,
+      extras
+    });
+
     const doc = await saved.save();
 
-    res.json(doc);
+    return res.json({
+      success: true,
+      message: "Record saved successfully",
+      data: doc
+    });
   } catch (err) {
     console.error("Add saved error:", err);
-    res.status(500).json({ error: "Failed to save college" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save record"
+    });
   }
 });
 
-// UPDATE saved college
+// ⭐ 4. Update a saved record
 router.put("/:id", async (req, res) => {
   try {
-    const updated = await Saved.findByIdAndUpdate(
-      req.params.id,
+    const { firebaseUid } = req.body;
+
+    const updated = await Saved.findOneAndUpdate(
+      { _id: req.params.id, firebaseUid },
       req.body,
       { new: true }
     );
 
     if (!updated) {
-      return res.status(404).json({ message: "Record not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Record not found or unauthorized"
+      });
     }
 
-    res.json(updated);
+    return res.json({
+      success: true,
+      message: "Record updated",
+      data: updated
+    });
   } catch (err) {
     console.error("Update error:", err);
-    res.status(500).json({ message: "Server error" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
   }
 });
 
-
-
-// DELETE saved
-router.delete("/:id", async (req, res) => {
+// ⭐ 5. Delete a saved record
+router.delete("/:id/:firebaseUid", async (req, res) => {
   try {
-    await Saved.findByIdAndDelete(req.params.id);
-    res.json({ message: "Deleted" });
+    const result = await Saved.findOneAndDelete({
+      _id: req.params.id,
+      firebaseUid: req.params.firebaseUid
+    });
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Record not found or unauthorized"
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Deleted"
+    });
+
   } catch (err) {
     console.error("Delete saved error:", err);
-    res.status(500).json({ error: "Delete failed" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Delete failed"
+    });
   }
 });
 
