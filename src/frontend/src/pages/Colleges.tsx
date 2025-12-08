@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SearchBar, { Suggestion } from "../components/SearchBar";
 import { useAuth } from "../AuthContext";
@@ -43,8 +43,13 @@ export default function Colleges() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Guards against stale responses
+  const searchVersionRef = useRef(0);
+  const suggestionVersionRef = useRef(0);
+
   const fetchColleges = useCallback(
     async (query?: string, letter?: string | null) => {
+      const thisVersion = ++searchVersionRef.current;
       setLoading(true);
       setError(null);
       try {
@@ -52,32 +57,46 @@ export default function Colleges() {
         if (query?.trim()) params.set("q", query.trim());
         if (letter) params.set("letter", letter);
         params.set("limit", "200");
+
         const res = await apiGet<{ success: boolean; data: College[]; total?: number }>(
           `/api/colleges${params.toString() ? `?${params.toString()}` : ""}`
         );
+
+        // If a newer search started after this one, ignore the result
+        if (thisVersion !== searchVersionRef.current) return;
+
         setColleges(res?.data || []);
       } catch (err: any) {
         console.error("Load colleges failed", err);
+        if (thisVersion !== searchVersionRef.current) return;
         setError(err?.message || "Failed to load colleges");
         setColleges([]);
       } finally {
-        setLoading(false);
+        if (thisVersion === searchVersionRef.current) {
+          setLoading(false);
+        }
       }
     },
     []
   );
 
   const fetchSuggestions = useCallback(async (query: string) => {
-    if (!query.trim()) {
+    const trimmed = query.trim();
+    if (!trimmed) {
       setSuggestions([]);
       return;
     }
+
+    const thisVersion = ++suggestionVersionRef.current;
     try {
       const params = new URLSearchParams();
-      params.set("q", query.trim());
+      params.set("q", trimmed);
       const res = await apiGet<{ success: boolean; data: any[] }>(
         `/api/colleges/suggestions?${params.toString()}`
       );
+
+      if (thisVersion !== suggestionVersionRef.current) return;
+
       const mapped: Suggestion[] = (res?.data || []).map((c) => ({
         id: c.id || c._id,
         label: c.label || c.name,
@@ -86,10 +105,12 @@ export default function Colleges() {
       setSuggestions(mapped);
     } catch (err) {
       console.warn("Suggestions failed", err);
+      if (thisVersion !== suggestionVersionRef.current) return;
       setSuggestions([]);
     }
   }, []);
 
+  // initial load
   useEffect(() => {
     fetchColleges();
   }, [fetchColleges]);
@@ -114,14 +135,13 @@ export default function Colleges() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+    setSelectedLetter(null);              // always clear letter when text search
     fetchColleges(query, null);
     fetchSuggestions(query);
-    if (query.trim()) {
-      setSelectedLetter(null);
-    }
   };
 
   const handleLetterClick = (letter: string) => {
+    // Clear text query when using alphabet filter
     if (selectedLetter === letter) {
       setSelectedLetter(null);
       setSearchQuery("");
@@ -131,6 +151,8 @@ export default function Colleges() {
       setSearchQuery("");
       fetchColleges("", letter);
     }
+    // Also clear suggestions when using letters
+    setSuggestions([]);
   };
 
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -155,7 +177,6 @@ export default function Colleges() {
           },
           token
         );
-        // update local saved list to reflect state
         setSavedRecords((prev) => [
           ...prev,
           { _id: college._id, name: college.name, INSTNM: college.INSTNM },
@@ -173,18 +194,23 @@ export default function Colleges() {
   };
 
   const activeColleges = colleges;
+
   const acceptanceText = (c: College) =>
     c.acceptanceRate ||
     (typeof c.ADM_RATE === "number" ? `${(c.ADM_RATE * 100).toFixed(1)}%` : undefined);
+
   const graduationText = (c: College) =>
     c.graduationRate ||
     (typeof c.GRAD_RATE === "number"
       ? `${(c.GRAD_RATE <= 1 ? c.GRAD_RATE * 100 : c.GRAD_RATE).toFixed(1)}%`
       : undefined);
+
   const isSaved = (c: College) => {
     const target = (c.name ?? c.INSTNM ?? "").trim().toLowerCase();
     if (!target) return false;
-    return savedRecords.some((s) => (s.name ?? s.INSTNM ?? "").trim().toLowerCase() === target);
+    return savedRecords.some(
+      (s) => (s.name ?? s.INSTNM ?? "").trim().toLowerCase() === target
+    );
   };
 
   return (
@@ -194,7 +220,7 @@ export default function Colleges() {
           <h1 className="text-gray-900 mb-0.5">Browse Colleges</h1>
           <p className="text-gray-600">Search and explore colleges to add to your tracker</p>
         </div>
-        
+
         {/* Desktop & Tablet: Search on left, Alphabet filter on right */}
         <div className="hidden md:block">
           {/* >= 1200px: Search and alphabet in one row with 40:60 ratio */}
@@ -212,7 +238,7 @@ export default function Colleges() {
                 autoFocus
               />
             </div>
-            
+
             {/* A-Z Letter Navigation */}
             <div className="min-[1200px]:w-[60%] w-full bg-white rounded-lg shadow-sm border border-gray-100 h-12 px-2 flex items-center">
               <div className="flex justify-between w-full">
@@ -227,11 +253,12 @@ export default function Colleges() {
                       className={`
                         w-7 h-7 rounded flex items-center justify-center text-sm
                         transition-all duration-200
-                        ${isSelected 
-                          ? 'bg-indigo-600 text-white scale-125 font-bold shadow-md z-10' 
-                          : hasColleges
-                          ? 'bg-gray-50 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 hover:scale-110'
-                          : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                        ${
+                          isSelected
+                            ? "bg-indigo-600 text-white scale-125 font-bold shadow-md z-10"
+                            : hasColleges
+                            ? "bg-gray-50 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 hover:scale-110"
+                            : "bg-gray-50 text-gray-300 cursor-not-allowed"
                         }
                       `}
                     >
@@ -271,31 +298,40 @@ export default function Colleges() {
       {/* List View - Desktop & Tablet */}
       <section className="hidden sm:block space-y-2">
         {activeColleges.map((college) => (
-          <article 
+          <article
             key={college._id}
             className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-3 border border-gray-100"
           >
             <div className="flex items-start gap-3">
               <span className="text-2xl">🎓</span>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
-                    <h2 className="text-gray-900 leading-tight">{college.name ?? college.INSTNM}</h2>
-                    <p className="text-gray-600 text-sm mt-0.5">{college.location ?? [college.CITY, college.STABBR].filter(Boolean).join(", ")}</p>
+                    <h2 className="text-gray-900 leading-tight">
+                      {college.name ?? college.INSTNM}
+                    </h2>
+                    <p className="text-gray-600 text-sm mt-0.5">
+                      {college.location ??
+                        [college.CITY, college.STABBR].filter(Boolean).join(", ")}
+                    </p>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     {acceptanceText(college) && (
                       <div className="text-center">
                         <div className="text-gray-500 text-xs">Acceptance</div>
-                        <div className="text-gray-900 text-sm">{acceptanceText(college)}</div>
+                        <div className="text-gray-900 text-sm">
+                          {acceptanceText(college)}
+                        </div>
                       </div>
                     )}
                     {graduationText(college) && (
                       <div className="text-center">
                         <div className="text-gray-500 text-xs">Grad Rate</div>
-                        <div className="text-gray-900 text-sm">{graduationText(college)}</div>
+                        <div className="text-gray-900 text-sm">
+                          {graduationText(college)}
+                        </div>
                       </div>
                     )}
                     <button
@@ -320,15 +356,20 @@ export default function Colleges() {
       {/* List View - Mobile */}
       <section className="sm:hidden space-y-2">
         {activeColleges.map((college) => (
-          <article 
+          <article
             key={college._id}
             className="bg-white rounded-lg shadow-sm p-3 border border-gray-100"
           >
             <header className="mb-2 flex items-start gap-2">
               <span className="text-xl">🎓</span>
               <div className="flex-1 min-w-0">
-                <h2 className="text-gray-900 leading-tight">{college.name ?? college.INSTNM}</h2>
-                <p className="text-gray-600 text-sm">{college.location ?? [college.CITY, college.STABBR].filter(Boolean).join(", ")}</p>
+                <h2 className="text-gray-900 leading-tight">
+                  {college.name ?? college.INSTNM}
+                </h2>
+                <p className="text-gray-600 text-sm">
+                  {college.location ??
+                    [college.CITY, college.STABBR].filter(Boolean).join(", ")}
+                </p>
               </div>
             </header>
 
@@ -337,13 +378,17 @@ export default function Colleges() {
                 {acceptanceText(college) && (
                   <div className="flex justify-between">
                     <dt className="text-gray-500">Acceptance Rate</dt>
-                    <dd className="text-gray-900">{acceptanceText(college)}</dd>
+                    <dd className="text-gray-900">
+                      {acceptanceText(college)}
+                    </dd>
                   </div>
                 )}
                 {graduationText(college) && (
                   <div className="flex justify-between">
                     <dt className="text-gray-500">Grad Rate</dt>
-                    <dd className="text-gray-900">{graduationText(college)}</dd>
+                    <dd className="text-gray-900">
+                      {graduationText(college)}
+                    </dd>
                   </div>
                 )}
               </dl>
@@ -366,7 +411,9 @@ export default function Colleges() {
 
       {!loading && activeColleges.length === 0 && (
         <div className="text-center py-10 bg-white rounded-xl shadow-sm">
-          <p className="text-gray-500 mb-1">No colleges found matching "{searchQuery}"</p>
+          <p className="text-gray-500 mb-1">
+            No colleges found matching "{searchQuery}"
+          </p>
           <p className="text-gray-400">Try a different search term</p>
         </div>
       )}
@@ -392,4 +439,5 @@ export default function Colleges() {
       </AlertDialog>
     </main>
   );
+
 }
