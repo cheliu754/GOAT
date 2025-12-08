@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "./firebaseConfig";
-import { API_BASE, apiPost } from "./lib/api";
+import { apiPost } from "./lib/api";
 
 type AuthContextType = {
   user: User | null;
@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!user) return;
       try {
         const token = await user.getIdToken();
-        await apiPost(`${API_BASE}/api/users/sync`, {
+        await apiPost("/api/users/sync", {
           name: user.displayName ?? null,
           email: user.email ?? null,
         }, token);

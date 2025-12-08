@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
+const API_BASE_RAW = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = API_BASE_RAW ? API_BASE_RAW.replace(/\/$/, "") : "";
 
 type RequestOptions = {
   method?: string;
@@ -8,6 +9,9 @@ type RequestOptions = {
 };
 
 async function apiRequest<T = any>(path: string, options: RequestOptions = {}): Promise<T> {
+  if (!API_BASE && !path.startsWith("http")) {
+    throw new Error("VITE_API_BASE_URL is not set");
+  }
   const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const isFormData = options.body instanceof FormData;
 
