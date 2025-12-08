@@ -24,7 +24,7 @@ console.log("SERVER STARTING...");
 
 // MongoDB
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGO_URL)
   .then(() => console.log("MongoDB connected (Atlas)"))
   .catch((err) => console.log("MongoDB connection error:", err));
 

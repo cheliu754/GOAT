@@ -21,9 +21,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => off();
   }, []);
 
+  useEffect(() => {
+    const syncUser = async () => {
+      if (!user) return;
+      try {
+        const token = await user.getIdToken();
+        await fetch("http://localhost:4000/api/users/sync", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name: user.displayName ?? null,
+            email: user.email ?? null,
+          }),
+        });
+      } catch (err) {
+        console.error("User sync failed", err);
+      }
+    };
+
+    syncUser();
+  }, [user]);
   return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>;
 }
-
 export function useAuth() {
   return useContext(AuthContext);
 }
