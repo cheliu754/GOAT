@@ -21,12 +21,6 @@ const formatCollege = (doc) => {
       ? `${(raw.ADM_RATE * 100).toFixed(1)}%`
       : null);
 
-  const graduationRate =
-    raw.graduationRate ??
-    (raw.GRAD_RATE !== null && raw.GRAD_RATE !== undefined
-      ? `${(raw.GRAD_RATE <= 1 ? raw.GRAD_RATE * 100 : raw.GRAD_RATE).toFixed(1)}%`
-      : null);
-
   return {
     _id: raw._id,
     INSTNM: raw.INSTNM,
@@ -37,14 +31,15 @@ const formatCollege = (doc) => {
     CONTROL: raw.CONTROL,
     ADM_RATE: raw.ADM_RATE,
     SAT_AVG: raw.SAT_AVG,
-    TUITION: raw.TUITION,
-    TUITION_IN: raw.TUITION_IN,
-    TUITION_OUT: raw.TUITION_OUT,
-    GRAD_RATE: raw.GRAD_RATE,
+    TUITION: undefined,
+    TUITION_IN: undefined,
+    TUITION_OUT: undefined,
+    GRAD_RATE: undefined,
     name: raw.name ?? raw.INSTNM,
     location,
     acceptanceRate,
-    graduationRate,
+    ADM_RATE: raw.ADM_RATE,
+    SAT_AVG: raw.SAT_AVG,
   };
 };
 

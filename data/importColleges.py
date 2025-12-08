@@ -1,5 +1,5 @@
 """
-Import college_data.csv into MongoDB.
+Clear MongoDB colleges collection and import data/colleges_cleaned.csv.
 Requires: pip install pymongo
 """
 
@@ -10,9 +10,11 @@ from urllib.parse import urlparse
 from pymongo import MongoClient
 
 # Mongo connection string (override via MONGO_URL env if needed)
-MONGO_URL = os.getenv("MONGO_URL")
+MONGO_URL = os.getenv(
+    "MONGO_URL"
+)
 
-DATA_FILE = os.path.join(os.path.dirname(__file__), "college_data.csv")
+DATA_FILE = os.path.join(os.path.dirname(__file__), "colleges_cleaned.csv")
 
 
 def to_number(value: Optional[str]) -> Optional[float]:
@@ -29,8 +31,7 @@ def to_number(value: Optional[str]) -> Optional[float]:
 
 def get_db(client: MongoClient):
     parsed = urlparse(MONGO_URL)
-    # db_name = parsed.path.lstrip("/") or "goat"
-    db_name = "test"
+    db_name = parsed.path.lstrip("/") or "test"
     return client.get_database(db_name)
 
 
@@ -51,27 +52,20 @@ def main():
 
     docs = []
     for row in rows:
-        name = row.get("") or row.get("name") or row.get("INSTNM")
+        name = row.get("INSTNM")
         if not name:
             continue
-
-        apps = to_number(row.get("Apps"))
-        accepts = to_number(row.get("Accept"))
-        adm_rate = accepts / apps if apps and accepts and apps > 0 else None
-
-        is_private = str(row.get("Private", "")).strip().lower() == "yes"
-        grad_rate_raw = to_number(row.get("Grad.Rate"))
-        grad_rate = None
-        if grad_rate_raw is not None:
-          # Grad.Rate in the CSV looks like percentage (e.g., 60)
-          grad_rate = grad_rate_raw / 100 if grad_rate_raw > 1 else grad_rate_raw
 
         docs.append(
             {
                 "INSTNM": name,
-                "CONTROL": 2 if is_private else 1,  # 1 public, 2 private
-                "ADM_RATE": adm_rate,
-                "GRAD_RATE": grad_rate,
+                "CITY": row.get("CITY") or "",
+                "STABBR": row.get("STABBR") or "",
+                "ZIP": row.get("ZIP") or "",
+                "INSTURL": row.get("INSTURL") or "",
+                "CONTROL": to_number(row.get("CONTROL")),
+                "ADM_RATE": to_number(row.get("ADM_RATE")),
+                "SAT_AVG": to_number(row.get("SAT_AVG")),
             }
         )
 
@@ -81,12 +75,11 @@ def main():
         client.close()
         return
 
-    if os.getenv("CLEAR_COLLECTION", "false").lower() == "true":
-        result = colleges.delete_many({})
-        print(f"Cleared existing colleges: {result.deleted_count}")
+    deleted = colleges.delete_many({})
+    print(f"Cleared existing colleges: {deleted.deleted_count}")
 
-    insert_result = colleges.insert_many(docs, ordered=False)
-    print(f"Inserted {len(insert_result.inserted_ids)} colleges")
+    result = colleges.insert_many(docs, ordered=False)
+    print(f"Inserted {len(result.inserted_ids)} colleges")
 
     client.close()
     print("Done.")

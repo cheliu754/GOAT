@@ -25,9 +25,8 @@ type College = {
   name?: string;
   location?: string;
   acceptanceRate?: string | null;
-  graduationRate?: string | null;
   ADM_RATE?: number;
-  GRAD_RATE?: number;
+  SAT_AVG?: number;
 };
 
 export default function Colleges() {
@@ -199,11 +198,11 @@ export default function Colleges() {
     c.acceptanceRate ||
     (typeof c.ADM_RATE === "number" ? `${(c.ADM_RATE * 100).toFixed(1)}%` : undefined);
 
-  const graduationText = (c: College) =>
-    c.graduationRate ||
-    (typeof c.GRAD_RATE === "number"
-      ? `${(c.GRAD_RATE <= 1 ? c.GRAD_RATE * 100 : c.GRAD_RATE).toFixed(1)}%`
-      : undefined);
+  const satText = (c: College) =>
+    typeof c.SAT_AVG === "number" && Number.isFinite(c.SAT_AVG)
+      ? Math.round(c.SAT_AVG).toString()
+      : undefined;
+  const displayValue = (val?: string) => (val ? val : "N/A");
 
   const isSaved = (c: College) => {
     const target = (c.name ?? c.INSTNM ?? "").trim().toLowerCase();
@@ -318,22 +317,18 @@ export default function Colleges() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    {acceptanceText(college) && (
-                      <div className="text-center">
-                        <div className="text-gray-500 text-xs">Acceptance</div>
-                        <div className="text-gray-900 text-sm">
-                          {acceptanceText(college)}
-                        </div>
+                    <div className="text-center">
+                      <div className="text-gray-500 text-xs">Acceptance</div>
+                      <div className="text-gray-900 text-sm">
+                        {displayValue(acceptanceText(college))}
                       </div>
-                    )}
-                    {graduationText(college) && (
-                      <div className="text-center">
-                        <div className="text-gray-500 text-xs">Grad Rate</div>
-                        <div className="text-gray-900 text-sm">
-                          {graduationText(college)}
-                        </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-gray-500 text-xs">SAT Avg</div>
+                      <div className="text-gray-900 text-sm">
+                        {displayValue(satText(college))}
                       </div>
-                    )}
+                    </div>
                     <button
                       onClick={() => handleSave(college)}
                       className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm whitespace-nowrap disabled:opacity-60"
@@ -373,26 +368,20 @@ export default function Colleges() {
               </div>
             </header>
 
-            {(acceptanceText(college) || graduationText(college)) && (
-              <dl className="mb-2 space-y-0.5 text-sm">
-                {acceptanceText(college) && (
-                  <div className="flex justify-between">
-                    <dt className="text-gray-500">Acceptance Rate</dt>
-                    <dd className="text-gray-900">
-                      {acceptanceText(college)}
-                    </dd>
-                  </div>
-                )}
-                {graduationText(college) && (
-                  <div className="flex justify-between">
-                    <dt className="text-gray-500">Grad Rate</dt>
-                    <dd className="text-gray-900">
-                      {graduationText(college)}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-            )}
+            <dl className="mb-2 space-y-0.5 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-gray-500">Acceptance Rate</dt>
+                <dd className="text-gray-900">
+                  {displayValue(acceptanceText(college))}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-500">SAT Avg</dt>
+                <dd className="text-gray-900">
+                  {displayValue(satText(college))}
+                </dd>
+              </div>
+            </dl>
 
             <button
               onClick={() => handleSave(college)}
