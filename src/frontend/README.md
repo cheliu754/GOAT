@@ -1,6 +1,5 @@
-## Run the following command at current directory
-```npm start```
-## TODO:
-- Connection to backend with layout adjusted accordingly
-- Google Authorization
-- Deployment
+## Running the code
+
+Run `npm i` to install the dependencies.
+
+Run `npm run dev` to start the development server.

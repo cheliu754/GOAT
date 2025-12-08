@@ -1,50 +1,61 @@
-import './App.css';
-
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { AuthProvider } from "./AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 import TopBar from "./components/TopBar";
+import Footer from "./components/Footer";
 import DashBoard from "./pages/DashBoard";
 import UpdateModal from './pages/UpdateModal';
 import Colleges from './pages/Colleges';
 import SignIn from "./pages/SignIn";
-import { AuthProvider } from './auth/AuthProvider';
+import { Toaster } from "./components/ui/sonner";
 
 function AppInner() {
   const location = useLocation();
   const state = location.state as { backgroundLocation?: Location } | null;
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <TopBar />
-      {/* Base routes render against the "backgroundLocation" if present */}
-      <Routes location={state?.backgroundLocation || location}>
-        <Route path="/" element={<DashBoard />} />
-        <Route path="/colleges" element={<Colleges />} />
-        <Route path="/signin" element={<SignIn />} />  
-      </Routes>
-
-      {/* When a background location is set, render the modal on top */}
-      {state?.backgroundLocation && (
-        <Routes>
-          <Route path="/update" element={<UpdateModal />} />
+      <div className="flex-1">
+        {/* Base routes render against the "backgroundLocation" if present */}
+        <Routes location={state?.backgroundLocation || location}>
+          <Route path="/" element={
+            <ProtectedRoute showEmptyState={true}>
+              <DashBoard />
+            </ProtectedRoute>
+          } />
+          <Route path="/colleges" element={<Colleges />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/update" element={
+            <ProtectedRoute>
+              <UpdateModal />
+            </ProtectedRoute>
+          } />
         </Routes>
-      )}
 
-      {/* Also support direct visit to /update (no background) */}
-      {!state?.backgroundLocation && (
-        <Routes>
-          <Route path="/update" element={<UpdateModal />} />
-        </Routes>
-      )}
-    </>
+        {/* When a background location is set, render the modal on top */}
+        {state?.backgroundLocation && (
+          <Routes>
+            <Route path="/update" element={
+              <ProtectedRoute>
+                <UpdateModal />
+              </ProtectedRoute>
+            } />
+          </Routes>
+        )}
+      </div>
+      <Footer />
+    </div>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Router basename="/CollegeApplicationTracker">
+    <Router>
+      <AuthProvider>
         <AppInner />
-      </Router>
-    </AuthProvider>
+        <Toaster position="top-center" richColors />
+      </AuthProvider>
+    </Router>
   );
 }

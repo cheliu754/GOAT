@@ -1,0 +1,105 @@
+[
+  {
+    "INSTNM": "Stanford University",
+    "CITY": "Stanford",
+    "STABBR": "CA",
+    "ZIP": "94305",
+    "INSTURL": "https://www.stanford.edu",
+    "ADM_RATE": 0.039,
+    "TUITION": 56169,
+    "SAT_AVG": 1500
+  },
+  {
+    "INSTNM": "Massachusetts Institute of Technology",
+    "CITY": "Cambridge",
+    "STABBR": "MA",
+    "ZIP": "02139",
+    "INSTURL": "https://www.mit.edu",
+    "ADM_RATE": 0.032,
+    "TUITION": 57986,
+    "SAT_AVG": 1530
+  },
+  {
+    "INSTNM": "Harvard University",
+    "CITY": "Cambridge",
+    "STABBR": "MA",
+    "ZIP": "02138",
+    "INSTURL": "https://www.harvard.edu",
+    "ADM_RATE": 0.034,
+    "TUITION": 54269,
+    "SAT_AVG": 1520
+  },
+  {
+    "INSTNM": "University of California, Berkeley",
+    "CITY": "Berkeley",
+    "STABBR": "CA",
+    "ZIP": "94720",
+    "INSTURL": "https://www.berkeley.edu",
+    "ADM_RATE": 0.145,
+    "TUITION_IN": 14312,
+    "TUITION_OUT": 44708,
+    "SAT_AVG": 1415
+  },
+  {
+    "INSTNM": "Yale University",
+    "CITY": "New Haven",
+    "STABBR": "CT",
+    "ZIP": "06520",
+    "INSTURL": "https://www.yale.edu",
+    "ADM_RATE": 0.046,
+    "TUITION": 62250,
+    "SAT_AVG": 1500
+  },
+  {
+    "INSTNM": "Princeton University",
+    "CITY": "Princeton",
+    "STABBR": "NJ",
+    "ZIP": "08544",
+    "INSTURL": "https://www.princeton.edu",
+    "ADM_RATE": 0.044,
+    "TUITION": 57410,
+    "SAT_AVG": 1510
+  },
+  {
+    "INSTNM": "Columbia University",
+    "CITY": "New York",
+    "STABBR": "NY",
+    "ZIP": "10027",
+    "INSTURL": "https://www.columbia.edu",
+    "ADM_RATE": 0.037,
+    "TUITION": 65524,
+    "SAT_AVG": 1505
+  },
+  {
+    "INSTNM": "University of California, Los Angeles",
+    "CITY": "Los Angeles",
+    "STABBR": "CA",
+    "ZIP": "90095",
+    "INSTURL": "https://www.ucla.edu",
+    "ADM_RATE": 0.086,
+    "TUITION_IN": 13401,
+    "TUITION_OUT": 43873,
+    "SAT_AVG": 1400
+  },
+  {
+    "INSTNM": "University of Michigan",
+    "CITY": "Ann Arbor",
+    "STABBR": "MI",
+    "ZIP": "48109",
+    "INSTURL": "https://www.umich.edu",
+    "ADM_RATE": 0.177,
+    "TUITION_IN": 17786,
+    "TUITION_OUT": 57173,
+    "SAT_AVG": 1435
+  },
+  {
+    "INSTNM": "Duke University",
+    "CITY": "Durham",
+    "STABBR": "NC",
+    "ZIP": "27708",
+    "INSTURL": "https://www.duke.edu",
+    "ADM_RATE": 0.058,
+    "TUITION": 63054,
+    "SAT_AVG": 1490
+  }
+]

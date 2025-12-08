@@ -16,6 +16,9 @@ const SavedSchema = new mongoose.Schema({
   location: { type: String, default: "" },      // "CITY, STABBR"
   website: { type: String, default: "" },
   notes: { type: String, default: "" },
+  applicationStatus: { type: String, default: "Not Started" },
+  essayStatus: { type: String, default: "Not Started" },
+  recommendationStatus: { type: String, default: "Not Started" },
   extras: { type: [ExtraFieldSchema], default: [] },
 
   createdAt: { type: Date, default: Date.now }

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import "./SearchBar.css";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Search, X } from "lucide-react";
 
 export type Suggestion = {
   id: string;
@@ -9,6 +9,7 @@ export type Suggestion = {
 
 type SearchBarProps = {
   placeholder?: string;
+  value?: string;                            // controlled value
   defaultValue?: string;
   debounceMs?: number;                   // debounce for onChange
   suggestions?: Suggestion[];            // optional suggestion list
@@ -20,6 +21,7 @@ type SearchBarProps = {
 
 export default function SearchBar({
   placeholder = "Search schools…",
+  value: controlledValue,
   defaultValue = "",
   debounceMs = 250,
   suggestions = [],
@@ -28,12 +30,24 @@ export default function SearchBar({
   onSelectSuggestion,
   autoFocus = false,
 }: SearchBarProps) {
-  const [value, setValue] = useState(defaultValue);
+  const [internalValue, setInternalValue] = useState(defaultValue);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number>(-1);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
   const debounceTimer = useRef<number | null>(null);
+
+  // Use controlled value if provided, otherwise use internal value
+  const value = controlledValue !== undefined ? controlledValue : internalValue;
+  const setValue = (newValue: string) => {
+    if (controlledValue !== undefined) {
+      // For controlled mode, just call onChange
+      onChange?.(newValue);
+    } else {
+      // For uncontrolled mode, update internal state
+      setInternalValue(newValue);
+    }
+  };
 
   // Basic filter for suggestions
   const filtered = useMemo(() => {
@@ -44,15 +58,15 @@ export default function SearchBar({
       .slice(0, 8);
   }, [value, suggestions]);
 
-  // Debounce onChange
+  // Debounce onChange (only for uncontrolled mode)
   useEffect(() => {
-    if (!onChange) return;
+    if (!onChange || controlledValue !== undefined) return; // Skip debounce for controlled mode
     if (debounceTimer.current) window.clearTimeout(debounceTimer.current);
-    debounceTimer.current = window.setTimeout(() => onChange(value), debounceMs);
+    debounceTimer.current = window.setTimeout(() => onChange(internalValue), debounceMs);
     return () => {
       if (debounceTimer.current) window.clearTimeout(debounceTimer.current);
     };
-  }, [value, debounceMs, onChange]);
+  }, [internalValue, debounceMs, onChange, controlledValue]);
 
   useEffect(() => {
     if (autoFocus && inputRef.current) inputRef.current.focus();
@@ -114,9 +128,9 @@ export default function SearchBar({
       : undefined;
 
   return (
-    <div className="search">
-      <div className="search__box">
-        <span className="search__icon" aria-hidden>🔎</span>
+    <div className="relative w-full max-w-2xl">
+      <div className="relative flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg shadow-sm hover:border-indigo-400 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 transition-all h-12">
+        <Search className="ml-3 w-4 h-4 text-gray-400 flex-shrink-0" aria-hidden />
 
         <input
           ref={inputRef}
@@ -125,7 +139,7 @@ export default function SearchBar({
           onKeyDown={onKeyDown}
           onFocus={() => setOpen(true)}
           onBlur={onBlur}
-          className="search__input"
+          className="flex-1 px-2 py-2 outline-none bg-transparent min-w-0 h-full"
           placeholder={placeholder}
           role="combobox"
           aria-expanded={open}
@@ -137,14 +151,18 @@ export default function SearchBar({
         {value && (
           <button
             type="button"
-            className="search__clear"
+            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
             aria-label="Clear"
             onClick={() => { setValue(""); inputRef.current?.focus(); setOpen(true); }}
           >
-            ✕
+            <X className="w-4 h-4 text-gray-500" />
           </button>
         )}
-        <button className="btn search__submit" onClick={submit} type="button">
+        <button 
+          className="px-4 h-9 mr-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors whitespace-nowrap flex items-center justify-center" 
+          onClick={submit} 
+          type="button"
+        >
           Search
         </button>
       </div>
@@ -153,7 +171,7 @@ export default function SearchBar({
         <ul
           id={listboxId}
           ref={listRef}
-          className="search__list"
+          className="absolute z-50 w-full mt-1.5 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
           role="listbox"
           aria-label="Suggestions"
         >
@@ -164,13 +182,13 @@ export default function SearchBar({
               <li
                 key={s.id}
                 id={optionId}
-                className={`search__item ${isActive ? "is-active" : ""}`}
+                className={`${isActive ? "bg-indigo-50" : ""} border-b border-gray-100 last:border-0`}
                 role="option"
                 aria-selected={isActive}
               >
                 <button
                   type="button"
-                  className="search__pick"
+                  className="w-full px-2.5 py-1.5 text-left hover:bg-indigo-50 transition-colors"
                   onClick={() => handleSelect(idx)}
                   onMouseEnter={() => setActiveIndex(idx)}
                 >
@@ -197,7 +215,7 @@ function highlightMatch(label: string, query: string) {
   return (
     <span>
       {before}
-      <mark>{match}</mark>
+      <mark className="bg-yellow-200">{match}</mark>
       {after}
     </span>
   );
