@@ -47,5 +47,5 @@ mongoose
   .then(() => console.log("MongoDB connected (Atlas)"))
   .catch((err) => console.log("MongoDB connection error:", err));
 
-const PORT = 4000;
+const PORT = process.env.SERVER_RUN_PORT;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
