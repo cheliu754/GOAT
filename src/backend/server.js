@@ -6,7 +6,16 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+const allowedOrigins = [
+  "https://409-frontend-production.up.railway.app",
+  "http://localhost:3000",
+];
+app.use(cors({
+  origin: allowedOrigins,     // 前端运行的域名与端口
+  credentials: true,          // 如需携带 cookie/凭证
+}));
+
 app.use(express.json());
 
 
