@@ -7,24 +7,7 @@ dotenv.config();
 
 const app = express();
 
-const envOrigins = (process.env.CORS_ALLOWED_ORIGINS || "").split(",").map(o => o.trim()).filter(Boolean);
-const allowedOrigins = [
-  "https://409-frontend-production.up.railway.app",
-  "http://localhost:3000",
-  "http://localhost:5173",
-  ...envOrigins
-];
-
-app.use(cors({
-  credentials: true,
-  origin: (origin, callback) => {
-    // Allow server-to-server / curl with no origin
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    console.warn("CORS blocked origin:", origin);
-    return callback(new Error("Not allowed by CORS"));
-  },
-}));
+app.use(cors());
 
 app.use(express.json());
 
