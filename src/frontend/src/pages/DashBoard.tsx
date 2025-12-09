@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronLeft, ChevronRight, GraduationCap, CheckCircle2, Circle, Clock, LayoutGrid, List, X } from "lucide-react";
 import { useAuth } from "../AuthContext";
-import { apiDelete, apiGet } from "../lib/api";
+import { apiDelete, apiGet, apiPut } from "../lib/api";
 import { toast } from "sonner@2.0.3";
 
 type College = {
@@ -16,6 +16,7 @@ type College = {
   essayStatus?: string;
   recommendationStatus?: string;
   deadline?: string;
+  notes?: string;
 };
 
 export default function DashBoard() {
@@ -32,6 +33,9 @@ export default function DashBoard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
 
   const loadSaved = useCallback(async () => {
     setLoading(true);
@@ -112,6 +116,55 @@ export default function DashBoard() {
 
   const cancelDelete = () => {
     setDeleteConfirm({ show: false, college: null });
+  };
+
+  const openNotesModal = () => {
+    if (!selectedCollege) return;
+    setNoteDraft(selectedCollege.notes || "");
+    setNotesOpen(true);
+  };
+
+  const persistNotes = async (nextNotes: string, isDelete = false) => {
+    if (!user) {
+      toast.error("Please sign in to save notes.");
+      return;
+    }
+    if (!selectedCollege?._id) return;
+
+    try {
+      setSavingNote(true);
+      const token = await user.getIdToken();
+      const res = await apiPut<{ success: boolean; data?: College }>(
+        `/api/saved/${selectedCollege._id}`,
+        { notes: nextNotes },
+        token
+      );
+      const updatedCollege: College = res?.data
+        ? { ...selectedCollege, ...res.data }
+        : { ...selectedCollege, notes: nextNotes };
+
+      setColleges((prev) =>
+        prev.map((c) => (c._id === updatedCollege._id ? updatedCollege : c))
+      );
+      setSelectedCollege(updatedCollege);
+      toast.success(isDelete ? "Delete success" : "Notes saved");
+      setNotesOpen(false);
+    } catch (err: any) {
+      console.error("Save notes failed", err);
+      toast.error(err?.message || "Failed to save notes");
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleSaveNotes = (e: React.FormEvent) => {
+    e.preventDefault();
+    persistNotes(noteDraft, false);
+  };
+
+  const handleDeleteNotes = async () => {
+    setNoteDraft("");
+    await persistNotes("", true);
   };
 
   // Calculate progress percentage
@@ -231,7 +284,7 @@ export default function DashBoard() {
                 >
                   {colleges.map((c) => (
                     <article 
-                      className={`relative flex-none w-[240px] rounded-xl shadow-md hover:shadow-lg transition-all p-3 snap-start cursor-pointer h-full ${
+                      className={`relative flex-none w-[240px] h-[250px] overflow-hidden rounded-xl shadow-md hover:shadow-lg transition-all p-3 snap-start cursor-pointer ${
                         c.applicationStatus === "Rejected"
                           ? 'bg-red-50 border-2 border-red-200'
                           : selectedCollege?._id === c._id 
@@ -510,8 +563,20 @@ export default function DashBoard() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full whitespace-nowrap">
-                      <span>{calculateProgress(selectedCollege)}% Complete</span>
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:self-start">
+                      <button
+                        onClick={openNotesModal}
+                        className="px-3 py-1 rounded-full text-white shadow-sm hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed order-1 sm:order-1 w-full sm:w-auto text-center whitespace-nowrap flex-shrink-0"
+                        style={{
+                          backgroundImage: "linear-gradient(90deg, #ff4d4f, #ffd666)"
+                        }}
+                        disabled={!selectedCollege}
+                      >
+                        My Notes
+                      </button>
+                      <div className="flex items-center gap-1.5 bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full whitespace-nowrap order-2 sm:order-2">
+                        <span>{calculateProgress(selectedCollege)}% Complete</span>
+                      </div>
                     </div>
                   </div>
 
@@ -648,6 +713,70 @@ export default function DashBoard() {
             </section>
           )}
         </>
+      )}
+
+      {/* Notes Modal */}
+      {notesOpen && selectedCollege && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-3">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+              <div>
+                <h2 className="text-gray-900 mb-0.5">My Notes</h2>
+                <p className="text-gray-600 text-sm truncate">{selectedCollege.name ?? selectedCollege.INSTNM}</p>
+              </div>
+              <button
+                onClick={() => setNotesOpen(false)}
+                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Close notes"
+              >
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveNotes} className="p-4 space-y-3">
+              <div>
+                <label htmlFor="noteContent" className="block text-gray-700 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  id="noteContent"
+                  value={noteDraft}
+                  onChange={(e) => setNoteDraft(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all resize-none"
+                  placeholder="Add reminders, interview tips, or links..."
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-gray-200">
+                <button
+                  type="button"
+                  className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto"
+                  onClick={() => setNotesOpen(false)}
+                >
+                  Close
+                </button>
+                <div className="flex gap-2 justify-end w-full sm:w-auto">
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 border border-red-500 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-60"
+                    onClick={handleDeleteNotes}
+                    disabled={savingNote || !noteDraft}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-60"
+                    disabled={savingNote}
+                  >
+                    {savingNote ? "Saving..." : "Save"}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Delete Confirmation Modal */}
