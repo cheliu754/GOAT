@@ -180,6 +180,7 @@ export default function Colleges() {
           ...prev,
           { _id: college._id, name: college.name, INSTNM: college.INSTNM },
         ]);
+        setColleges((prev) => prev.filter((item) => item._id !== college._id));
         toast.success(`Saved ${college.name ?? college.INSTNM} to your dashboard`);
       } catch (err: any) {
         console.error("Save college failed", err);
@@ -191,8 +192,6 @@ export default function Colleges() {
     }
     setShowLoginDialog(true);
   };
-
-  const activeColleges = colleges;
 
   const acceptanceText = (c: College) =>
     c.acceptanceRate ||
@@ -211,6 +210,8 @@ export default function Colleges() {
       (s) => (s.name ?? s.INSTNM ?? "").trim().toLowerCase() === target
     );
   };
+
+  const activeColleges = colleges.filter((c) => !isSaved(c));
 
   return (
     <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-5">

@@ -199,6 +199,10 @@ export default function DashBoard() {
   };
 
   const handleDeleteNotes = async () => {
+    if (!noteDraft.trim()) {
+      toast.error("Delete failed: note is empty.");
+      return;
+    }
     setNoteDraft("");
     await persistNotes("", true);
   };
@@ -657,7 +661,7 @@ export default function DashBoard() {
 
           {/* Progress Section - Only show in Grid View */}
           {viewMode === "grid" && (
-            <section className="mt-5">
+            <section className="mt-8">
               {selectedCollege ? (
                 <div className="bg-white rounded-xl shadow-md p-4 border border-gray-100">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
@@ -678,7 +682,7 @@ export default function DashBoard() {
                         className="px-3 py-1 rounded-full text-white shadow-sm hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed order-1 sm:order-1 w-full sm:w-auto text-center whitespace-nowrap flex-shrink-0"
                         style={{
                           backgroundImage:
-                            "linear-gradient(90deg, #ff4d4f, #ffd666)",
+                            "linear-gradient(90deg, #fbc940ff, #fbc940ff)",
                         }}
                         disabled={!selectedCollege}
                       >
@@ -929,7 +933,7 @@ export default function DashBoard() {
                     type="button"
                     className="px-3 py-1.5 border border-red-500 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-60"
                     onClick={handleDeleteNotes}
-                    disabled={savingNote || !noteDraft}
+                    disabled={savingNote}
                   >
                     Delete
                   </button>
