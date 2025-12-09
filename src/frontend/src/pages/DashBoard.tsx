@@ -231,7 +231,7 @@ export default function DashBoard() {
                 >
                   {colleges.map((c) => (
                     <article 
-                      className={`relative flex-none w-[240px] rounded-xl shadow-md hover:shadow-lg transition-all p-3 snap-start cursor-pointer ${
+                      className={`relative flex-none w-[240px] rounded-xl shadow-md hover:shadow-lg transition-all p-3 snap-start cursor-pointer h-full ${
                         c.applicationStatus === "Rejected"
                           ? 'bg-red-50 border-2 border-red-200'
                           : selectedCollege?._id === c._id 
@@ -250,27 +250,36 @@ export default function DashBoard() {
                         <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
                       </button>
 
-                      <header className="mb-3">
-                        <span className="text-2xl mb-1.5 block">🎓</span>
-                        <h2 className="text-gray-900 mb-0.5 leading-tight pr-6">{c.name ?? c.INSTNM}</h2>
-                      </header>
+                      <div className="flex flex-col h-full">
+                        <header className="mb-2">
+                          <span className="text-2xl mb-1.5 block">🎓</span>
+                          <h2
+                            className="text-gray-900 mb-0.5 leading-tight pr-6 min-h-[2.75rem]"
+                            style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                          >
+                            {c.name ?? c.INSTNM}
+                          </h2>
+                        </header>
 
-                      <dl className="mb-3 space-y-1.5">
-                        <div className="flex justify-between items-center">
-                          <dt className="text-gray-500">Location</dt>
-                          <dd className="text-gray-900 text-right text-sm">{c.location ?? [c.CITY, c.STABBR].filter(Boolean).join(", ")}</dd>
+                        <dl className="mb-3 space-y-1.5">
+                          <div className="flex justify-between items-center min-h-[1.25rem]">
+                            <dt className="text-gray-500">Location</dt>
+                            <dd className="text-gray-900 text-right text-sm truncate">
+                              {c.location ?? [c.CITY, c.STABBR].filter(Boolean).join(", ")}
+                            </dd>
+                          </div>
+                        </dl>
+
+                        <div className="mt-auto pt-2 border-t border-gray-100">
+                          <Link
+                            to="/update"
+                            state={{ backgroundLocation: location, school: c }}
+                            className="block w-full px-2 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Update
+                          </Link>
                         </div>
-                      </dl>
-
-                      <div className="pt-2 border-t border-gray-100">
-                        <Link
-                          to="/update"
-                          state={{ backgroundLocation: location, school: c }}
-                          className="block w-full px-2 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-center"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Update
-                        </Link>
                       </div>
                     </article>
                   ))}
@@ -281,7 +290,7 @@ export default function DashBoard() {
               <div className="sm:hidden space-y-2">
                 {colleges.map((c) => (
                     <article 
-                      className={`relative rounded-xl shadow-md p-3 cursor-pointer ${
+                      className={`relative rounded-xl shadow-md p-3 cursor-pointer h-full ${
                       c.applicationStatus === "Rejected"
                         ? 'bg-red-50 border-2 border-red-200'
                         : selectedCollege?._id === c._id 
@@ -300,22 +309,31 @@ export default function DashBoard() {
                       <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
                     </button>
 
-                    <header className="mb-2 flex items-start gap-2">
-                      <span className="text-2xl">🎓</span>
-                      <div className="flex-1 pr-6">
-                        <h2 className="text-gray-900 mb-0.5 leading-tight">{c.name ?? c.INSTNM}</h2>
-                        <p className="text-gray-600">{c.location ?? [c.CITY, c.STABBR].filter(Boolean).join(", ")}</p>
-                      </div>
-                    </header>
+                    <div className="flex flex-col h-full">
+                      <header className="mb-2 flex items-start gap-2">
+                        <span className="text-2xl">🎓</span>
+                        <div className="flex-1 pr-6 min-w-0">
+                          <h2
+                            className="text-gray-900 mb-0.5 leading-tight min-h-[2.75rem]"
+                            style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                          >
+                            {c.name ?? c.INSTNM}
+                          </h2>
+                          <p className="text-gray-600 truncate min-h-[1.25rem]">
+                            {c.location ?? [c.CITY, c.STABBR].filter(Boolean).join(", ")}
+                          </p>
+                        </div>
+                      </header>
 
-                    <Link
-                      to="/update"
-                      state={{ backgroundLocation: location, school: c }}
-                      className="block w-full px-2 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-center"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Update
-                    </Link>
+                      <Link
+                        to="/update"
+                        state={{ backgroundLocation: location, school: c }}
+                        className="block w-full px-2 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-center mt-auto"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Update
+                      </Link>
+                    </div>
                   </article>
                 ))}
               </div>
