@@ -290,7 +290,7 @@ export default function DashBoard() {
           <div className="flex gap-2">
             <button
               onClick={handleViewToggle}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors ${
+              className={`flex items-center gap-2 px-2.5 py-1.5 sm:px-3 rounded-lg transition-colors text-sm sm:text-base ${
                 isToggleActive
                   ? "bg-indigo-600 text-white hover:bg-indigo-700"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -322,7 +322,7 @@ export default function DashBoard() {
             </button>
             <Link
               to="/colleges"
-              className="w-full sm:w-auto text-center px-3 py-1.5 bg-gradient-to-r from-blue-500 to-teal-400 text-white rounded-lg hover:from-blue-600 hover:to-teal-500 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+              className="w-full sm:w-auto text-center px-2.5 py-1.5 sm:px-3 bg-gradient-to-r from-blue-500 to-teal-400 text-white rounded-lg hover:from-blue-600 hover:to-teal-500 transition-all shadow-lg hover:shadow-xl hover:scale-105 text-sm sm:text-base"
             >
               Browse Schools
             </Link>
@@ -494,7 +494,7 @@ export default function DashBoard() {
                       <Link
                         to="/update"
                         state={{ backgroundLocation: location, school: c }}
-                        className="block w-full px-2 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-center mt-auto"
+                        className="block w-full px-2 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-center mt-auto text-sm sm:text-base"
                         onClick={(e) => e.stopPropagation()}
                       >
                         Update
@@ -695,12 +695,12 @@ export default function DashBoard() {
                       <Link
                         to="/update"
                         state={{ backgroundLocation: location, school: c }}
-                        className="block w-full px-2 py-2 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-center"
+                        className="block w-full px-2 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-center text-sm sm:text-base"
                       >
                         Update Status
                       </Link>
                       <button
-                        className="block w-full px-2 py-2 mt-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-center"
+                        className="block w-full px-2 py-1.5 mt-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-center text-sm sm:text-base"
                         onClick={(e) => handleDeleteClick(c, e)}
                       >
                         Delete
