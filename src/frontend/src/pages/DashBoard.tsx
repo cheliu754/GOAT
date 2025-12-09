@@ -245,7 +245,12 @@ export default function DashBoard() {
   };
 
   const calculateProgress = (college: College) => {
-    if (college.applicationStatus === "Rejected") return 100;
+    if (
+      college.applicationStatus === "Rejected" ||
+      college.applicationStatus === "Accepted" ||
+      college.applicationStatus === "Waitlisted"
+    )
+      return 100;
 
     const steps = [
       college.applicationStatus,
@@ -264,6 +269,31 @@ export default function DashBoard() {
     return Math.round((completed / steps.length) * 100);
   };
 
+  const getCompletedStepsCount = (college: College) => {
+    if (
+      college.applicationStatus === "Rejected" ||
+      college.applicationStatus === "Accepted" ||
+      college.applicationStatus === "Waitlisted"
+    )
+      return 3;
+
+    const steps = [
+      college.applicationStatus,
+      college.essayStatus,
+      college.recommendationStatus,
+    ];
+
+    const completed = steps.filter(
+      (status) =>
+        status === "Completed" ||
+        status === "Submitted" ||
+        status === "Received" ||
+        status === "Accepted"
+    ).length;
+
+    return completed;
+  };
+
   const getStepStatus = (status?: string) => {
     const completedStates = ["Completed", "Submitted", "Received", "Accepted"];
     const inProgressStates = ["In Progress", "Requested"];
@@ -276,7 +306,39 @@ export default function DashBoard() {
     return "not-started";
   };
 
+  const getTerminalStatusLabel = (status?: string) => {
+    switch (status) {
+      case "Accepted":
+        return "Accepted";
+      case "Waitlisted":
+        return "Waitlisted";
+      case "Rejected":
+        return "Rejected";
+      default:
+        return null;
+    }
+  };
+
+  const getListStatusClasses = (status?: string) => {
+    switch (status) {
+      case "Rejected":
+        return "bg-red-50 border-2 border-red-200";
+      case "Accepted":
+        return "bg-green-50 border-2 border-green-200";
+      case "Waitlisted":
+        return "bg-yellow-50 border-2 border-yellow-200";
+      default:
+        return "bg-white border border-gray-100";
+    }
+  };
+
   const isToggleActive = isMobile ? mobileProgressVisible : viewMode === "list";
+  const selectedCompletedStepsCount = selectedCollege
+    ? getCompletedStepsCount(selectedCollege)
+    : 0;
+  const selectedTerminalLabel = getTerminalStatusLabel(
+    selectedCollege?.applicationStatus
+  );
   return (
     <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-5">
       <section className="mb-4 sm:mb-5">
@@ -383,9 +445,7 @@ export default function DashBoard() {
                   {colleges.map((c) => (
                     <article
                       className={`relative flex-none w-[240px] h-[250px] overflow-hidden rounded-xl shadow-md hover:shadow-lg transition-all p-3 snap-start cursor-pointer ${
-                        c.applicationStatus === "Rejected"
-                          ? "bg-red-50 border-2 border-red-200"
-                          : selectedCollege?._id === c._id
+                        selectedCollege?._id === c._id
                           ? "bg-white border-2 border-indigo-500 ring-2 ring-indigo-100"
                           : "bg-white border border-gray-100"
                       }`}
@@ -450,9 +510,7 @@ export default function DashBoard() {
                 {colleges.map((c) => (
                   <article
                     className={`relative rounded-xl shadow-md p-3 cursor-pointer h-full ${
-                      c.applicationStatus === "Rejected"
-                        ? "bg-red-50 border-2 border-red-200"
-                        : selectedCollege?._id === c._id
+                      selectedCollege?._id === c._id
                         ? "bg-white border-2 border-indigo-500 ring-2 ring-indigo-100"
                         : "bg-white border border-gray-100"
                     }`}
@@ -513,11 +571,9 @@ export default function DashBoard() {
                   return (
                     <article
                       key={c._id}
-                      className={`rounded-xl shadow-md hover:shadow-lg transition-all p-4 ${
-                        c.applicationStatus === "Rejected"
-                          ? "bg-red-50 border-2 border-red-200"
-                          : "bg-white border border-gray-100"
-                      }`}
+                      className={`rounded-xl shadow-md hover:shadow-lg transition-all p-4 ${getListStatusClasses(
+                        c.applicationStatus
+                      )}`}
                     >
                       <div className="flex items-start gap-4">
                         <span className="text-3xl">🎓</span>
@@ -618,11 +674,9 @@ export default function DashBoard() {
                   return (
                     <article
                       key={c._id}
-                      className={`rounded-xl shadow-md p-3 ${
-                        c.applicationStatus === "Rejected"
-                          ? "bg-red-50 border-2 border-red-200"
-                          : "bg-white border border-gray-100"
-                      }`}
+                      className={`rounded-xl shadow-md p-3 ${getListStatusClasses(
+                        c.applicationStatus
+                      )}`}
                     >
                       <header className="mb-2 flex items-start gap-2">
                         <span className="text-2xl">🎓</span>
@@ -751,18 +805,9 @@ export default function DashBoard() {
                     <div className="flex justify-between items-center mb-1.5">
                       <span className="text-gray-700">Overall Progress</span>
                       <span className="text-gray-500">
-                        {[
-                          selectedCollege.applicationStatus,
-                          selectedCollege.essayStatus,
-                          selectedCollege.recommendationStatus,
-                        ].filter(
-                          (s) =>
-                            s === "Completed" ||
-                            s === "Submitted" ||
-                            s === "Received" ||
-                            s === "Accepted"
-                        ).length}{" "}
-                        of 3 steps
+                        {selectedTerminalLabel
+                          ? selectedTerminalLabel
+                          : `${selectedCompletedStepsCount}/3 steps`}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
