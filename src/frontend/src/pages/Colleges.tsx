@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import SearchBar, { Suggestion } from "../components/SearchBar";
+import SearchBar from "../components/SearchBar";
 import { useAuth } from "../AuthContext";
 import { apiGet, apiPost } from "../lib/api";
 import { toast } from "sonner@2.0.3";
@@ -34,7 +34,6 @@ export default function Colleges() {
   const [colleges, setColleges] = useState<College[]>([]);
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -44,7 +43,6 @@ export default function Colleges() {
 
   // Guards against stale responses
   const searchVersionRef = useRef(0);
-  const suggestionVersionRef = useRef(0);
 
   const fetchColleges = useCallback(
     async (query?: string, letter?: string | null) => {
@@ -79,52 +77,6 @@ export default function Colleges() {
     []
   );
 
-  const fetchSuggestions = useCallback(async (query: string) => {
-    const trimmed = query.trim();
-    if (!trimmed) {
-      setSuggestions([]);
-      return;
-    }
-
-    const thisVersion = ++suggestionVersionRef.current;
-    try {
-      const params = new URLSearchParams();
-      params.set("q", trimmed);
-      const res = await apiGet<{ success: boolean; data: any[] }>(
-        `/api/colleges/suggestions?${params.toString()}`
-      );
-
-      if (thisVersion !== suggestionVersionRef.current) return;
-
-      const mapped: Suggestion[] = (res?.data || []).map((c) => {
-        const location =
-          c.location || [c.city, c.state].filter(Boolean).join(", ");
-        const searchText = [
-          c.label || c.name,
-          location,
-          c.city,
-          c.state,
-          c.zip,
-        ]
-          .filter(Boolean)
-          .join(" ");
-
-        return {
-          id: c.id || c._id,
-          label: c.label || c.name,
-          value: c.value || c.name,
-          subLabel: location || undefined,
-          searchText: searchText || undefined,
-        };
-      });
-      setSuggestions(mapped);
-    } catch (err) {
-      console.warn("Suggestions failed", err);
-      if (thisVersion !== suggestionVersionRef.current) return;
-      setSuggestions([]);
-    }
-  }, []);
-
   // initial load
   useEffect(() => {
     fetchColleges();
@@ -152,7 +104,6 @@ export default function Colleges() {
     setSearchQuery(query);
     setSelectedLetter(null);              // always clear letter when text search
     fetchColleges(query, null);
-    fetchSuggestions(query);
   };
 
   const handleLetterClick = (letter: string) => {
@@ -166,8 +117,6 @@ export default function Colleges() {
       setSearchQuery("");
       fetchColleges("", letter);
     }
-    // Also clear suggestions when using letters
-    setSuggestions([]);
   };
 
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -218,6 +167,22 @@ export default function Colleges() {
       ? Math.round(c.SAT_AVG).toString()
       : undefined;
   const displayValue = (val?: string) => (val ? val : "N/A");
+  const escapeRegExp = (val: string) => val.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const highlightText = (text?: string) => {
+    if (!text) return text ?? "";
+    const query = searchQuery.trim();
+    if (!query) return text;
+    const regex = new RegExp(`(${escapeRegExp(query)})`, "ig");
+    return text.split(regex).map((part, idx) =>
+      idx % 2 === 1 ? (
+        <mark key={idx} className="bg-yellow-200 px-0.5 rounded-sm">
+          {part}
+        </mark>
+      ) : (
+        <span key={idx}>{part}</span>
+      )
+    );
+  };
 
   const isSaved = (c: College) => {
     const target = (c.name ?? c.INSTNM ?? "").trim().toLowerCase();
@@ -246,11 +211,9 @@ export default function Colleges() {
             <div className="min-[1200px]:w-[40%] w-full [&>div]:max-w-none">
               <SearchBar
                 placeholder="Search schools by name or location…"
-                suggestions={suggestions}
                 value={searchQuery}
                 onChange={handleSearch}
                 onSubmit={handleSearch}
-                onSelectSuggestion={(s) => handleSearch(s.value || s.label)}
                 autoFocus
               />
             </div>
@@ -291,11 +254,9 @@ export default function Colleges() {
         <div className="md:hidden">
           <SearchBar
             placeholder="Search schools by name or location…"
-            suggestions={suggestions}
             value={searchQuery}
             onChange={handleSearch}
             onSubmit={handleSearch}
-            onSelectSuggestion={(s) => handleSearch(s.value || s.label)}
             autoFocus
           />
         </div>
@@ -325,11 +286,13 @@ export default function Colleges() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
                     <h2 className="text-gray-900 leading-tight">
-                      {college.name ?? college.INSTNM}
+                      {highlightText(college.name ?? college.INSTNM)}
                     </h2>
                     <p className="text-gray-600 text-sm mt-0.5">
-                      {college.location ??
-                        [college.CITY, college.STABBR].filter(Boolean).join(", ")}
+                      {highlightText(
+                        college.location ??
+                          [college.CITY, college.STABBR].filter(Boolean).join(", ")
+                      )}
                     </p>
                   </div>
 
@@ -376,11 +339,13 @@ export default function Colleges() {
               <span className="text-xl">🎓</span>
               <div className="flex-1 min-w-0">
                 <h2 className="text-gray-900 leading-tight">
-                  {college.name ?? college.INSTNM}
+                  {highlightText(college.name ?? college.INSTNM)}
                 </h2>
                 <p className="text-gray-600 text-sm">
-                  {college.location ??
-                    [college.CITY, college.STABBR].filter(Boolean).join(", ")}
+                  {highlightText(
+                    college.location ??
+                      [college.CITY, college.STABBR].filter(Boolean).join(", ")
+                  )}
                 </p>
               </div>
             </header>
