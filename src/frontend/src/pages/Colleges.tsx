@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SearchBar from "../components/SearchBar";
 import { useAuth } from "../AuthContext";
@@ -184,15 +184,52 @@ export default function Colleges() {
     );
   };
 
-  const isSaved = (c: College) => {
-    const target = (c.name ?? c.INSTNM ?? "").trim().toLowerCase();
-    if (!target) return false;
-    return savedRecords.some(
-      (s) => (s.name ?? s.INSTNM ?? "").trim().toLowerCase() === target
-    );
-  };
+  const scoreRelevance = useCallback(
+    (c: College) => {
+      const q = searchQuery.trim().toLowerCase();
+      if (!q) return 0;
 
-  const activeColleges = colleges.filter((c) => !isSaved(c));
+      const name = (c.name ?? c.INSTNM ?? "").trim().toLowerCase();
+      const cityState = [c.CITY, c.STABBR].filter(Boolean).join(" ").toLowerCase();
+      const location = (c.location ?? cityState).trim().toLowerCase();
+
+      const positionBonus = (text: string) => {
+        const idx = text.indexOf(q);
+        if (idx === -1) return 0;
+        return idx === 0 ? 120 : Math.max(60 - idx, 8);
+      };
+
+      let score = 0;
+      score += positionBonus(name);
+      score += positionBonus(location);
+
+      if (name === q) score += 200; // exact name match
+      if (location === q) score += 120;
+
+      if (name.includes(q)) score += Math.max(0, 80 - name.indexOf(q));
+      if (location.includes(q)) score += Math.max(0, 40 - location.indexOf(q));
+
+      return score;
+    },
+    [searchQuery]
+  );
+
+  const isSaved = useCallback(
+    (c: College) => {
+      const target = (c.name ?? c.INSTNM ?? "").trim().toLowerCase();
+      if (!target) return false;
+      return savedRecords.some(
+        (s) => (s.name ?? s.INSTNM ?? "").trim().toLowerCase() === target
+      );
+    },
+    [savedRecords]
+  );
+
+  const activeColleges = useMemo(() => {
+    const filtered = colleges.filter((c) => !isSaved(c));
+    if (!searchQuery.trim()) return filtered;
+    return [...filtered].sort((a, b) => scoreRelevance(b) - scoreRelevance(a));
+  }, [colleges, isSaved, scoreRelevance, searchQuery]);
 
   return (
     <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-5">
