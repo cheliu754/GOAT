@@ -10,6 +10,9 @@ const SHOULD_SEED =
   process.env.SEED_COLLEGES !== "false";
 let seedChecked = false;
 
+const escapeRegex = (input = "") =>
+  input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const formatCollege = (doc) => {
   const raw = doc?.toObject ? doc.toObject({ virtuals: true }) : doc;
   const location =
@@ -68,13 +71,37 @@ const ensureSeedData = async () => {
 
 const findColleges = async ({ q, letter, limit = 100 } = {}) => {
   const clauses = [];
+  const safeRegex = q ? new RegExp(escapeRegex(q), "i") : null;
+  const regexString = q ? escapeRegex(q) : null;
 
-  if (q) {
+  if (q && safeRegex) {
     clauses.push({
       $or: [
-        { INSTNM: { $regex: q, $options: "i" } },
-        { CITY: { $regex: q, $options: "i" } },
-        { STABBR: { $regex: q, $options: "i" } },
+        { INSTNM: safeRegex },
+        { CITY: safeRegex },
+        { STABBR: safeRegex },
+        { ZIP: safeRegex },
+        {
+          $expr: {
+            $regexMatch: {
+              input: {
+                $trim: {
+                  input: {
+                    $concat: [
+                      { $ifNull: ["$CITY", ""] },
+                      " ",
+                      { $ifNull: ["$STABBR", ""] },
+                      " ",
+                      { $ifNull: ["$ZIP", ""] },
+                    ],
+                  },
+                },
+              },
+              regex: regexString,
+              options: "i",
+            },
+          },
+        },
       ],
     });
   }
@@ -132,6 +159,7 @@ router.get("/suggestions", async (req, res) => {
       location: c.location,
       city: c.CITY,
       state: c.STABBR,
+      zip: c.ZIP,
     }));
 
     res.json({ success: true, data: suggestions });

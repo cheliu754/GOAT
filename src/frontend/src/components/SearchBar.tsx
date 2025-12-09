@@ -3,8 +3,10 @@ import { Search, X } from "lucide-react";
 
 export type Suggestion = {
   id: string;
-  label: string;   // what is shown
-  value?: string;  // what is submitted (default: label)
+  label: string;    // what is shown
+  value?: string;   // what is submitted (default: label)
+  subLabel?: string;   // secondary text (e.g., location)
+  searchText?: string; // keywords to match when filtering suggestions
 };
 
 type SearchBarProps = {
@@ -53,8 +55,11 @@ export default function SearchBar({
   const filtered = useMemo(() => {
     if (!value.trim()) return suggestions.slice(0, 8);
     const v = value.toLowerCase();
+    const filterText = (s: Suggestion) =>
+      (s.searchText ||
+        [s.label, s.value, s.subLabel].filter(Boolean).join(" ")).toLowerCase();
     return suggestions
-      .filter((s) => s.label.toLowerCase().includes(v))
+      .filter((s) => filterText(s).includes(v))
       .slice(0, 8);
   }, [value, suggestions]);
 
@@ -192,7 +197,14 @@ export default function SearchBar({
                   onClick={() => handleSelect(idx)}
                   onMouseEnter={() => setActiveIndex(idx)}
                 >
-                  {highlightMatch(s.label, value)}
+                  <div className="flex flex-col">
+                    <span>{highlightMatch(s.label, value)}</span>
+                    {s.subLabel && (
+                      <span className="text-xs text-gray-500">
+                        {highlightMatch(s.subLabel, value)}
+                      </span>
+                    )}
+                  </div>
                 </button>
               </li>
             );

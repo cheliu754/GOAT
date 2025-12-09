@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   Circle,
   Clock,
+  Eye,
+  EyeOff,
   LayoutGrid,
   List,
   X,
@@ -34,9 +36,17 @@ export default function DashBoard() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
+  const initialIsMobile =
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 639px)").matches;
+
   const [colleges, setColleges] = useState<College[]>([]);
   const [selectedCollege, setSelectedCollege] = useState<College | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">(
+    initialIsMobile ? "list" : "grid"
+  );
+  const [isMobile, setIsMobile] = useState(initialIsMobile);
+  const [mobileProgressVisible, setMobileProgressVisible] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<{
     show: boolean;
     college: College | null;
@@ -103,6 +113,25 @@ export default function DashBoard() {
     };
   }, [loadSaved]);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 639px)");
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+    };
+
+    setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) {
+      setViewMode("list");
+      setMobileProgressVisible(true);
+    }
+  }, [isMobile]);
+
   const scrollByAmount = 300;
 
   const scrollLeft = () => {
@@ -117,6 +146,14 @@ export default function DashBoard() {
       left: scrollByAmount,
       behavior: "smooth",
     });
+  };
+
+  const handleViewToggle = () => {
+    if (isMobile) {
+      setMobileProgressVisible((prev) => !prev);
+      return;
+    }
+    setViewMode((prev) => (prev === "grid" ? "list" : "grid"));
   };
 
   const handleDeleteClick = (college: College, e: React.MouseEvent) => {
@@ -238,6 +275,8 @@ export default function DashBoard() {
     if (inProgressStates.includes(status)) return "in-progress";
     return "not-started";
   };
+
+  const isToggleActive = isMobile ? mobileProgressVisible : viewMode === "list";
   return (
     <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-5">
       <section className="mb-4 sm:mb-5">
@@ -250,14 +289,26 @@ export default function DashBoard() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
+              onClick={handleViewToggle}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors ${
-                viewMode === "list"
+                isToggleActive
                   ? "bg-indigo-600 text-white hover:bg-indigo-700"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
-              {viewMode === "grid" ? (
+              {isMobile ? (
+                mobileProgressVisible ? (
+                  <>
+                    <EyeOff className="w-4 h-4" />
+                    <span className="hidden sm:inline">Hide Progress</span>
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    <span className="hidden sm:inline">Show Progress</span>
+                  </>
+                )
+              ) : viewMode === "grid" ? (
                 <>
                   <List className="w-4 h-4" />
                   <span className="hidden sm:inline">List View</span>
@@ -599,45 +650,47 @@ export default function DashBoard() {
                         </div>
                       )}
 
-                      <div className="mb-3">
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-gray-600 text-sm">
-                            Application Progress
-                          </span>
-                          <span className="text-indigo-600 text-sm">
-                            {progress}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                          <div
-                            className="bg-indigo-600 h-2 rounded-full transition-all"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
+                      {mobileProgressVisible && (
+                        <div className="mb-3">
+                          <div className="flex justify-between items-center mb-1.5">
+                            <span className="text-gray-600 text-sm">
+                              Application Progress
+                            </span>
+                            <span className="text-indigo-600 text-sm">
+                              {progress}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                            <div
+                              className="bg-indigo-600 h-2 rounded-full transition-all"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
 
-                        <div className="space-y-1 text-xs">
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">Application:</span>
-                            <span className="text-gray-900">
-                              {c.applicationStatus || "Not Started"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">Essay:</span>
-                            <span className="text-gray-900">
-                              {c.essayStatus || "Not Started"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">
-                              Recommendation:
-                            </span>
-                            <span className="text-gray-900">
-                              {c.recommendationStatus || "Not Started"}
-                            </span>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Application:</span>
+                              <span className="text-gray-900">
+                                {c.applicationStatus || "Not Started"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Essay:</span>
+                              <span className="text-gray-900">
+                                {c.essayStatus || "Not Started"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">
+                                Recommendation:
+                              </span>
+                              <span className="text-gray-900">
+                                {c.recommendationStatus || "Not Started"}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
 
                       <Link
                         to="/update"

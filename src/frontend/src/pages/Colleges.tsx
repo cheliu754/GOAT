@@ -96,11 +96,27 @@ export default function Colleges() {
 
       if (thisVersion !== suggestionVersionRef.current) return;
 
-      const mapped: Suggestion[] = (res?.data || []).map((c) => ({
-        id: c.id || c._id,
-        label: c.label || c.name,
-        value: c.value || c.name,
-      }));
+      const mapped: Suggestion[] = (res?.data || []).map((c) => {
+        const location =
+          c.location || [c.city, c.state].filter(Boolean).join(", ");
+        const searchText = [
+          c.label || c.name,
+          location,
+          c.city,
+          c.state,
+          c.zip,
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        return {
+          id: c.id || c._id,
+          label: c.label || c.name,
+          value: c.value || c.name,
+          subLabel: location || undefined,
+          searchText: searchText || undefined,
+        };
+      });
       setSuggestions(mapped);
     } catch (err) {
       console.warn("Suggestions failed", err);
