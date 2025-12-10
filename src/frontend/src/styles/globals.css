@@ -39,6 +39,11 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Tailwind orange palette (missing from Tailwind build) */
+  --color-orange-50: #fff7ed;
+  --color-orange-200: #fed7aa;
+  --color-orange-600: #ea580c;
+  --color-orange-700: #c2410c;
 }
 
 .dark {
@@ -76,6 +81,10 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+  --color-orange-50: #fff7ed;
+  --color-orange-200: #fed7aa;
+  --color-orange-600: #ea580c;
+  --color-orange-700: #c2410c;
 }
 
 @theme inline {
@@ -188,4 +197,346 @@
 
 html {
   font-size: var(--font-size);
+}
+
+/* Reduce base font size on larger screens for more compact desktop experience */
+@media (min-width: 1024px) {
+  html {
+    font-size: 15.5px; /* Slightly reduced from 16px for more compact feel */
+  }
+}
+
+@media (min-width: 1440px) {
+  html {
+    font-size: 15px; /* Further reduced for extra large screens */
+  }
+}
+
+/* Height-based responsive scaling for Dashboard */
+@layer utilities {
+  /* Base size - smallest (for screens below 640px width or below 700px height) */
+  .dashboard-carousel-card {
+    width: 180px;
+    height: 157px; /* 1.15:1 ratio - 180 / 1.15 ≈ 157 */
+  }
+  
+  .dashboard-progress-card {
+    padding: 0.75rem; /* 12px */
+    margin-top: 0.75rem; /* 12px - reduced from 24px */
+    margin-bottom: 0.75rem; /* 12px - reduced from 24px */
+  }
+  
+  .dashboard-section-gap {
+    margin-bottom: 1rem; /* 16px */
+  }
+
+  /* Progress step indicator - default multi-line layout */
+  .progress-step-indicator {
+    padding: 0.75rem; /* 12px */
+    flex-direction: column;
+  }
+
+  .progress-step-title {
+    margin-bottom: 0.375rem; /* 6px */
+  }
+
+  /* Carousel card Update button behavior - show full by default */
+  .carousel-update-full {
+    display: block;
+  }
+
+  .carousel-update-compact {
+    display: none;
+  }
+
+  /* Width-based scaling (overrides base when width increases) */
+  @media (min-width: 640px) {
+    .dashboard-carousel-card {
+      width: 200px;
+      height: 174px; /* 1.15:1 ratio - 200 / 1.15 ≈ 174 */
+    }
+    
+    .dashboard-progress-card {
+      padding: 1rem; /* 16px */
+      margin-top: 1rem; /* 16px - reduced from 28px */
+      margin-bottom: 1rem; /* 16px - reduced from 28px */
+    }
+    
+    .dashboard-section-gap {
+      margin-top: 0.833rem; /* 13.33px - 4 parts of 4:6 ratio */
+      margin-bottom: 1.25rem; /* 20px - 6 parts of 4:6 ratio */
+    }
+
+    /* For smaller card heights at this breakpoint, switch to compact Update button */
+    .carousel-update-full {
+      display: none;
+    }
+
+    .carousel-update-compact {
+      display: flex;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .dashboard-carousel-card {
+      width: 220px;
+      height: 191px; /* 1.15:1 ratio - 220 / 1.15 ≈ 191 */
+    }
+
+    /* Still compact at this size */
+    .carousel-update-full {
+      display: none;
+    }
+
+    .carousel-update-compact {
+      display: flex;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .dashboard-carousel-card {
+      width: 235px; /* Slightly larger for better balance */
+      height: 204px; /* 1.15:1 ratio - 235 / 1.15 ≈ 204 */
+    }
+    
+    .dashboard-progress-card {
+      padding: 1.125rem; /* 18px - slightly reduced */
+      margin-top: 1.125rem; /* 18px */
+      margin-bottom: 1.125rem; /* 18px */
+    }
+    
+    .dashboard-section-gap {
+      margin-top: 0.917rem; /* 14.67px - 4 parts of 4:6 ratio */
+      margin-bottom: 1.375rem; /* 22px - 6 parts of 4:6 ratio */
+    }
+
+    /* Switch back to full Update button at larger card sizes */
+    .carousel-update-full {
+      display: block;
+    }
+
+    .carousel-update-compact {
+      display: none;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .dashboard-carousel-card {
+      width: 245px; /* Slightly larger for better balance */
+      height: 213px; /* 1.15:1 ratio - 245 / 1.15 ≈ 213 */
+    }
+    
+    .dashboard-progress-card {
+      padding: 1.25rem; /* 20px - slightly reduced from 24px */
+      margin-top: 1.25rem; /* 20px */
+      margin-bottom: 1.25rem; /* 20px */
+    }
+    
+    .dashboard-section-gap {
+      margin-top: 1rem; /* 16px - 4 parts of 4:6 ratio */
+      margin-bottom: 1.5rem; /* 24px - 6 parts of 4:6 ratio */
+    }
+
+    /* Keep full Update button at largest sizes */
+    .carousel-update-full {
+      display: block;
+    }
+
+    .carousel-update-compact {
+      display: none;
+    }
+  }
+
+  /* Height adjustments - reduce card size and margins when height is constrained */
+  /* These run AFTER width queries, so they can override when height is too small */
+  @media (max-height: 800px) and (min-width: 640px) {
+    .dashboard-carousel-card {
+      width: 180px;
+      height: 157px; /* 1.15:1 ratio - 180 / 1.15 ≈ 157 */
+    }
+    
+    .dashboard-progress-card {
+      margin-top: 0.75rem; /* Further reduced */
+      margin-bottom: 0.75rem; /* Further reduced */
+    }
+
+    /* Compress step indicators to single line */
+    .progress-step-indicator {
+      padding: 0.5rem 0.75rem; /* Reduce vertical padding */
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .progress-step-title {
+      margin-bottom: 0;
+      margin-right: 0.5rem;
+    }
+
+    /* Switch to compact Update button */
+    .carousel-update-full {
+      display: none;
+    }
+
+    .carousel-update-compact {
+      display: flex;
+    }
+  }
+
+  @media (max-height: 700px) and (min-width: 640px) {
+    .dashboard-carousel-card {
+      width: 160px;
+      height: 139px; /* 1.15:1 ratio - 160 / 1.15 ≈ 139 */
+    }
+    
+    .dashboard-progress-card {
+      padding: 0.75rem;
+      margin-top: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .dashboard-section-gap {
+      margin-top: 0.5rem; /* 8px - 4 parts of 4:6 ratio */
+      margin-bottom: 0.75rem; /* 12px - 6 parts of 4:6 ratio */
+    }
+
+    /* Even more compact step indicators */
+    .progress-step-indicator {
+      padding: 0.375rem 0.5rem; /* Further reduce padding */
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .progress-step-title {
+      margin-bottom: 0;
+      margin-right: 0.375rem;
+      font-size: 0.875rem; /* Smaller font */
+    }
+
+    .progress-step-status {
+      font-size: 0.875rem; /* Smaller font */
+    }
+  }
+
+  @media (max-height: 600px) and (min-width: 640px) {
+    .dashboard-carousel-card {
+      width: 140px;
+      height: 122px; /* 1.15:1 ratio - 140 / 1.15 ≈ 122 */
+    }
+    
+    /* Hide location when card height is small */
+    .dashboard-carousel-card dl {
+      display: none;
+    }
+    
+    .dashboard-progress-card {
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .dashboard-section-gap {
+      margin-top: 0.333rem; /* 5.33px - 4 parts of 4:6 ratio */
+      margin-bottom: 0.5rem; /* 8px - 6 parts of 4:6 ratio */
+    }
+
+    /* Most compact step indicators */
+    .progress-step-indicator {
+      padding: 0.25rem 0.5rem; /* Minimal padding */
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .progress-step-title {
+      margin-bottom: 0;
+      margin-right: 0.375rem;
+      font-size: 0.75rem; /* Even smaller font */
+    }
+
+    .progress-step-status {
+      font-size: 0.75rem; /* Even smaller font */
+    }
+
+    .progress-step-icon {
+      width: 0.875rem; /* 14px */
+      height: 0.875rem; /* 14px */
+    }
+  }
+
+  /* Height enhancements - expand card size and spacing when height is abundant */
+  /* Apply more generous spacing and sizing for taller screens */
+  @media (min-height: 900px) and (min-width: 768px) {
+    .dashboard-progress-card {
+      padding: 2rem; /* 32px - more spacious */
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .dashboard-section-gap {
+      margin-top: 1.333rem; /* 21.33px - 4 parts of 4:6 ratio */
+      margin-bottom: 2rem; /* 32px - 6 parts of 4:6 ratio */
+    }
+
+    /* Enhanced step indicators with more padding */
+    .progress-step-indicator {
+      padding: 1.25rem; /* 20px */
+      flex-direction: column; /* Ensure vertical layout */
+    }
+
+    .progress-step-title {
+      margin-bottom: 0.75rem; /* 12px - more space between title and status */
+    }
+
+    .progress-step-icon {
+      width: 1.25rem; /* 20px - larger icon */
+      height: 1.25rem; /* 20px */
+    }
+  }
+
+  @media (min-height: 1000px) and (min-width: 768px) {
+    .dashboard-progress-card {
+      padding: 2.5rem; /* 40px - even more spacious */
+      margin-top: 2.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .dashboard-section-gap {
+      margin-top: 1.667rem; /* 26.67px - 4 parts of 4:6 ratio */
+      margin-bottom: 2.5rem; /* 40px - 6 parts of 4:6 ratio */
+    }
+
+    /* Maximum spacious step indicators */
+    .progress-step-indicator {
+      padding: 1.5rem; /* 24px */
+      flex-direction: column;
+    }
+
+    .progress-step-title {
+      margin-bottom: 1rem; /* 16px - generous spacing */
+    }
+
+    .progress-step-icon {
+      width: 1.5rem; /* 24px - largest icon size */
+      height: 1.5rem; /* 24px */
+    }
+  }
+
+  /* Missing orange utilities used by dashboard status chips */
+  .bg-orange-50 {
+    background-color: var(--color-orange-50);
+  }
+
+  .border-orange-200 {
+    border-color: var(--color-orange-200);
+  }
+
+  .text-orange-600 {
+    color: var(--color-orange-600);
+  }
+
+  .text-orange-700 {
+    color: var(--color-orange-700);
+  }
 }

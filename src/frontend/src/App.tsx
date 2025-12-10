@@ -16,7 +16,7 @@ function AppInner() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <TopBar />
-      <div className="flex-1">
+      <main className="flex-1 overflow-y-auto">
         {/* Base routes render against the "backgroundLocation" if present */}
         <Routes location={state?.backgroundLocation || location}>
           <Route path="/" element={
@@ -43,7 +43,7 @@ function AppInner() {
             } />
           </Routes>
         )}
-      </div>
+      </main>
       <Footer />
     </div>
   );

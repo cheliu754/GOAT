@@ -46,7 +46,6 @@ export default function DashBoard() {
     initialIsMobile ? "list" : "grid"
   );
   const [isMobile, setIsMobile] = useState(initialIsMobile);
-  const [mobileProgressVisible, setMobileProgressVisible] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<{
     show: boolean;
     college: College | null;
@@ -125,13 +124,6 @@ export default function DashBoard() {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
-  useEffect(() => {
-    if (isMobile) {
-      setViewMode("list");
-      setMobileProgressVisible(true);
-    }
-  }, [isMobile]);
-
   const scrollByAmount = 300;
 
   const scrollLeft = () => {
@@ -149,10 +141,6 @@ export default function DashBoard() {
   };
 
   const handleViewToggle = () => {
-    if (isMobile) {
-      setMobileProgressVisible((prev) => !prev);
-      return;
-    }
     setViewMode((prev) => (prev === "grid" ? "list" : "grid"));
   };
 
@@ -298,8 +286,10 @@ export default function DashBoard() {
     const completedStates = ["Completed", "Submitted", "Received", "Accepted"];
     const inProgressStates = ["In Progress", "Requested"];
     const rejectedStates = ["Rejected", "Reject", "Denied"];
+    const waitlistedStates = ["Waitlisted"];
 
     if (!status || status === "Not Started") return "not-started";
+    if (waitlistedStates.includes(status)) return "waitlisted";
     if (rejectedStates.includes(status)) return "rejected";
     if (completedStates.includes(status)) return "completed";
     if (inProgressStates.includes(status)) return "in-progress";
@@ -320,19 +310,63 @@ export default function DashBoard() {
   };
 
   const getListStatusClasses = (status?: string) => {
-    switch (status) {
-      case "Rejected":
-        return "bg-red-50 border-2 border-red-200";
-      case "Accepted":
-        return "bg-green-50 border-2 border-green-200";
-      case "Waitlisted":
-        return "bg-yellow-50 border-2 border-yellow-200";
-      default:
-        return "bg-white border border-gray-100";
-    }
+    // Always return white background with light border
+    return "bg-white border border-gray-100";
   };
 
-  const isToggleActive = isMobile ? mobileProgressVisible : viewMode === "list";
+  const getStatusBadgeClasses = (status?: string) => {
+    const completedStates = ["Completed", "Submitted", "Received", "Accepted"];
+    const inProgressStates = ["In Progress", "Requested"];
+    const rejectedStates = ["Rejected", "Reject", "Denied"];
+
+    if (!status || status === "Not Started") {
+      return "bg-gray-100 text-gray-700 border border-gray-200";
+    }
+    if (rejectedStates.includes(status)) {
+      return "bg-red-50 text-red-700 border border-red-200";
+    }
+    if (completedStates.includes(status)) {
+      return "bg-green-50 text-green-700 border border-green-200";
+    }
+    if (inProgressStates.includes(status)) {
+      return "bg-yellow-50 text-yellow-700 border border-yellow-200";
+    }
+    if (status === "Waitlisted") {
+      return "bg-yellow-50 text-yellow-700 border border-yellow-200";
+    }
+    return "bg-gray-100 text-gray-700 border border-gray-200";
+  };
+
+  const isTerminalStatus = (status?: string) => {
+    return status === "Rejected" || status === "Waitlisted" || status === "Accepted";
+  };
+
+  const getTerminalBadgeClasses = (status?: string) => {
+    if (status === "Accepted") {
+      return "bg-green-50 text-green-700 border border-green-200";
+    }
+    if (status === "Waitlisted") {
+      return "bg-orange-50 text-orange-700 border border-orange-200";
+    }
+    if (status === "Rejected") {
+      return "bg-red-50 text-red-700 border border-red-200";
+    }
+    return "bg-indigo-50 text-indigo-700 border border-indigo-200";
+  };
+
+  // Helper function to format date without timezone issues
+  const formatDeadline = (dateString: string) => {
+    // Parse date as local date (YYYY-MM-DD format)
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day); // month is 0-indexed
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const isToggleActive = viewMode === "list";
   const selectedCompletedStepsCount = selectedCollege
     ? getCompletedStepsCount(selectedCollege)
     : 0;
@@ -341,7 +375,7 @@ export default function DashBoard() {
   );
   return (
     <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-5">
-      <section className="mb-4 sm:mb-5">
+      <section className="dashboard-section-gap">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-3">
           <div>
             <h1 className="text-gray-900 mb-0.5">Your Colleges</h1>
@@ -358,19 +392,7 @@ export default function DashBoard() {
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
-              {isMobile ? (
-                mobileProgressVisible ? (
-                  <>
-                    <EyeOff className="w-4 h-4" />
-                    <span className="hidden sm:inline">Hide Progress</span>
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-4 h-4" />
-                    <span className="hidden sm:inline">Show Progress</span>
-                  </>
-                )
-              ) : viewMode === "grid" ? (
+              {viewMode === "grid" ? (
                 <>
                   <List className="w-4 h-4" />
                   <span className="hidden sm:inline">List View</span>
@@ -444,7 +466,7 @@ export default function DashBoard() {
                 >
                   {colleges.map((c) => (
                     <article
-                      className={`relative flex-none w-[240px] h-[250px] overflow-hidden rounded-xl shadow-md hover:shadow-lg transition-all p-3 snap-start cursor-pointer ${
+                      className={`dashboard-carousel-card relative flex-none overflow-hidden rounded-xl shadow-md hover:shadow-lg transition-all p-3 snap-start cursor-pointer ${
                         selectedCollege?._id === c._id
                           ? "bg-white border-2 border-indigo-500 ring-2 ring-indigo-100"
                           : "bg-white border border-gray-100"
@@ -452,14 +474,30 @@ export default function DashBoard() {
                       key={c._id}
                       onClick={() => setSelectedCollege(c)}
                     >
-                      {/* Delete button */}
-                      <button
-                        className="absolute top-2 right-2 p-1 rounded-full bg-white hover:bg-red-50 border border-gray-200 hover:border-red-300 transition-all z-10"
-                        onClick={(e) => handleDeleteClick(c, e)}
-                        aria-label="Delete college"
-                      >
-                        <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
-                      </button>
+                      {/* Top right buttons */}
+                      <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
+                        {/* Compact Update button - only show in small height mode */}
+                        <Link
+                          to="/update"
+                          state={{ backgroundLocation: location, school: c }}
+                          className="carousel-update-compact hidden p-1.5 rounded-md bg-white hover:bg-indigo-50 border border-indigo-600 transition-all"
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label="Update status"
+                        >
+                          <svg className="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </Link>
+                        
+                        {/* Delete button */}
+                        <button
+                          className="p-1 rounded-full bg-white hover:bg-red-50 border border-gray-200 hover:border-red-300 transition-all"
+                          onClick={(e) => handleDeleteClick(c, e)}
+                          aria-label="Delete college"
+                        >
+                          <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
+                        </button>
+                      </div>
 
                       <div className="flex flex-col h-full">
                         <header className="mb-2">
@@ -477,7 +515,7 @@ export default function DashBoard() {
                           </h2>
                         </header>
 
-                        <dl className="mb-3 space-y-1.5">
+                        <dl className="mb-2 space-y-1.5">
                           <div className="flex justify-between items-center min-h-[1.25rem]">
                             <dt className="text-gray-500">Location</dt>
                             <dd className="text-gray-900 text-right text-sm truncate">
@@ -487,9 +525,8 @@ export default function DashBoard() {
                           </div>
                         </dl>
 
-                        <div className="flex-1" />
-
-                        <div className="mt-auto pt-2 pb-2 border-t border-gray-100">
+                        {/* Full Update button - shown by default, hidden in small height mode */}
+                        <div className="carousel-update-full mt-auto pt-2 border-t border-gray-100">
                           <Link
                             to="/update"
                             state={{ backgroundLocation: location, school: c }}
@@ -505,54 +542,45 @@ export default function DashBoard() {
                 </section>
               </div>
 
-              {/* Mobile: Vertical stacking */}
-              <div className="sm:hidden space-y-2">
+              {/* Mobile: 2-column grid */}
+              <div className="sm:hidden grid grid-cols-2 gap-2">
                 {colleges.map((c) => (
                   <article
-                    className={`relative rounded-xl shadow-md p-3 cursor-pointer h-full ${
-                      selectedCollege?._id === c._id
-                        ? "bg-white border-2 border-indigo-500 ring-2 ring-indigo-100"
-                        : "bg-white border border-gray-100"
-                    }`}
+                    className="relative rounded-xl shadow-md p-2.5 bg-white border border-gray-100"
                     key={c._id}
-                    onClick={() => setSelectedCollege(c)}
                   >
                     <button
-                      className="absolute top-2 right-2 p-1 rounded-full bg-white hover:bg-red-50 border border-gray-200 hover:border-red-300 transition-all z-10"
+                      className="absolute top-2 right-2 p-0.5 rounded-full bg-white hover:bg-red-50 border border-gray-200 hover:border-red-300 transition-all z-10"
                       onClick={(e) => handleDeleteClick(c, e)}
                       aria-label="Delete college"
                     >
-                      <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
+                      <X className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
                     </button>
 
                     <div className="flex flex-col h-full">
-                      <header className="mb-2 flex items-start gap-2">
-                        <span className="text-2xl">🎓</span>
-                        <div className="flex-1 pr-6 min-w-0">
-                          <h2
-                            className="text-gray-900 mb-0.5 leading-tight min-h-[2.75rem]"
-                            style={{
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                              overflow: "hidden",
-                            }}
-                          >
-                            {c.name ?? c.INSTNM}
-                          </h2>
-                          <p className="text-gray-600 truncate min-h-[1.25rem]">
-                            {c.location ??
-                              [c.CITY, c.STABBR].filter(Boolean).join(", ")}
-                          </p>
-                        </div>
+                      <header className="mb-2">
+                        <span className="text-xl mb-1 block">🎓</span>
+                        <h2
+                          className="text-gray-900 text-sm leading-tight pr-5 min-h-[2.5rem]"
+                          style={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {c.name ?? c.INSTNM}
+                        </h2>
+                        <p className="text-gray-600 text-xs truncate mt-1">
+                          {c.location ??
+                            [c.CITY, c.STABBR].filter(Boolean).join(", ")}
+                        </p>
                       </header>
-
-                      <div className="flex-1" />
 
                       <Link
                         to="/update"
                         state={{ backgroundLocation: location, school: c }}
-                        className="block w-full px-2 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-center mt-auto text-sm sm:text-base"
+                        className="block w-full px-2 py-1 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-center mt-auto text-xs"
                         onClick={(e) => e.stopPropagation()}
                       >
                         Update
@@ -568,6 +596,7 @@ export default function DashBoard() {
               <section className="hidden sm:block space-y-3">
                 {colleges.map((c) => {
                   const progress = calculateProgress(c);
+                  const isTerminal = isTerminalStatus(c.applicationStatus);
                   return (
                     <article
                       key={c._id}
@@ -580,86 +609,98 @@ export default function DashBoard() {
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-4 mb-3">
-                            <div className="flex-1">
-                              <h2 className="text-gray-900 mb-1 leading-tight">
-                                {c.name ?? c.INSTNM}
-                              </h2>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <h2 className="text-gray-900 leading-tight">
+                                  {c.name ?? c.INSTNM}
+                                </h2>
+                                <span className={`px-2 py-0.5 rounded-full text-xs whitespace-nowrap ${
+                                  isTerminal
+                                    ? getTerminalBadgeClasses(c.applicationStatus)
+                                    : "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                }`}>
+                                  {isTerminal ? c.applicationStatus : `${progress}% Complete`}
+                                </span>
+                              </div>
                               <p className="text-gray-600">
                                 {c.location ??
                                   [c.CITY, c.STABBR].filter(Boolean).join(", ")}
                               </p>
                             </div>
 
-                            {c.deadline && (
-                              <div className="text-right text-sm">
-                                <div className="text-gray-500">Deadline</div>
-                                <div className="text-gray-900">
-                                  {new Date(c.deadline).toLocaleDateString(
-                                    "en-US",
-                                    {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    }
-                                  )}
+                            <div className="flex gap-2 flex-shrink-0">
+                              <Link
+                                to="/update"
+                                state={{ backgroundLocation: location, school: c }}
+                                className="px-3 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-sm whitespace-nowrap"
+                              >
+                                Update Status
+                              </Link>
+                              <button
+                                className="px-3 py-1.5 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm whitespace-nowrap"
+                                onClick={(e) => handleDeleteClick(c, e)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+
+                          {!isTerminal && (
+                            <div className="mb-3">
+                              {/* Labels */}
+                              <div className="grid grid-cols-3 gap-1 mb-1 text-xs text-gray-500">
+                                <div className="text-center">Application</div>
+                                <div className="text-center">Essay</div>
+                                <div className="text-center">Recommendation</div>
+                              </div>
+                              
+                              {/* Progress Bar */}
+                              <div className="flex h-6 rounded-full overflow-hidden border border-gray-200">
+                                {/* Application segment */}
+                                <div className={`flex-1 flex items-center justify-center text-xs transition-colors ${
+                                  getStepStatus(c.applicationStatus) === "completed"
+                                    ? "bg-green-100 text-green-700 border-r border-gray-200"
+                                    : getStepStatus(c.applicationStatus) === "in-progress"
+                                    ? "bg-yellow-100 text-yellow-700 border-r border-gray-200"
+                                    : getStepStatus(c.applicationStatus) === "rejected"
+                                    ? "bg-red-100 text-red-700 border-r border-gray-200"
+                                    : "bg-gray-50 text-gray-600 border-r border-gray-200"
+                                }`}>
+                                  {c.applicationStatus || "Not Started"}
+                                </div>
+                                
+                                {/* Essay segment */}
+                                <div className={`flex-1 flex items-center justify-center text-xs transition-colors ${
+                                  getStepStatus(c.essayStatus) === "completed"
+                                    ? "bg-green-100 text-green-700 border-r border-gray-200"
+                                    : getStepStatus(c.essayStatus) === "in-progress"
+                                    ? "bg-yellow-100 text-yellow-700 border-r border-gray-200"
+                                    : "bg-gray-50 text-gray-600 border-r border-gray-200"
+                                }`}>
+                                  {c.essayStatus || "Not Started"}
+                                </div>
+                                
+                                {/* Recommendation segment */}
+                                <div className={`flex-1 flex items-center justify-center text-xs transition-colors ${
+                                  getStepStatus(c.recommendationStatus) === "completed"
+                                    ? "bg-green-100 text-green-700"
+                                    : getStepStatus(c.recommendationStatus) === "in-progress"
+                                    ? "bg-yellow-100 text-yellow-700"
+                                    : "bg-gray-50 text-gray-600"
+                                }`}>
+                                  {c.recommendationStatus || "Not Started"}
                                 </div>
                               </div>
-                            )}
-                          </div>
-
-                          <div className="mb-3">
-                            <div className="flex justify-between items-center mb-1.5">
-                              <span className="text-gray-600">
-                                Application Progress
-                              </span>
-                              <span className="text-indigo-600">{progress}%</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div
-                                className="bg-indigo-600 h-2 rounded-full transition-all"
-                                style={{ width: `${progress}%` }}
-                              />
-                            </div>
+                          )}
 
-                            <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
-                              <div>
-                                <span className="text-gray-500">
-                                  Application:{" "}
-                                </span>
-                                <span className="text-gray-900">
-                                  {c.applicationStatus || "Not Started"}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Essay: </span>
-                                <span className="text-gray-900">
-                                  {c.essayStatus || "Not Started"}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">
-                                  Recommendation:{" "}
-                                </span>
-                                <span className="text-gray-900">
-                                  {c.recommendationStatus || "Not Started"}
-                                </span>
-                              </div>
+                          {c.deadline && (
+                            <div className="pt-3 border-t border-gray-100">
+                              <p className="text-gray-500 text-sm">
+                                Deadline: {formatDeadline(c.deadline)}
+                              </p>
                             </div>
-                          </div>
-
-                          <Link
-                            to="/update"
-                            state={{ backgroundLocation: location, school: c }}
-                            className="inline-block px-4 py-2 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
-                          >
-                            Update Status
-                          </Link>
-                          <button
-                            className="inline-block px-4 py-2 ml-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                            onClick={(e) => handleDeleteClick(c, e)}
-                          >
-                            Delete
-                          </button>
+                          )}
                         </div>
                       </div>
                     </article>
@@ -671,6 +712,7 @@ export default function DashBoard() {
               <section className="sm:hidden space-y-3">
                 {colleges.map((c) => {
                   const progress = calculateProgress(c);
+                  const isTerminal = isTerminalStatus(c.applicationStatus);
                   return (
                     <article
                       key={c._id}
@@ -678,67 +720,78 @@ export default function DashBoard() {
                         c.applicationStatus
                       )}`}
                     >
-                      <header className="mb-2 flex items-start gap-2">
-                        <span className="text-2xl">🎓</span>
-                        <div className="flex-1 min-w-0">
-                          <h2 className="text-gray-900 mb-0.5 leading-tight">
-                            {c.name ?? c.INSTNM}
-                          </h2>
-                          <p className="text-gray-600">
-                            {c.location ??
-                              [c.CITY, c.STABBR].filter(Boolean).join(", ")}
-                          </p>
+                      <header className="mb-2">
+                        <div className="flex items-start gap-2 mb-2">
+                          <span className="text-2xl">🎓</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                              <h2 className="text-gray-900 leading-tight">
+                                {c.name ?? c.INSTNM}
+                              </h2>
+                              <span className={`px-2 py-0.5 rounded-full text-xs whitespace-nowrap ${
+                                isTerminal
+                                  ? getTerminalBadgeClasses(c.applicationStatus)
+                                  : "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                              }`}>
+                                {isTerminal ? c.applicationStatus : `${progress}%`}
+                              </span>
+                            </div>
+                            <p className="text-gray-600">
+                              {c.location ??
+                                [c.CITY, c.STABBR].filter(Boolean).join(", ")}
+                            </p>
+                          </div>
                         </div>
                       </header>
 
-                      {c.deadline && (
-                        <div className="mb-3 text-sm flex justify-between">
-                          <span className="text-gray-500">Deadline:</span>
-                          <span className="text-gray-900">
-                            {new Date(c.deadline).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </span>
-                        </div>
-                      )}
-
-                      {mobileProgressVisible && (
+                      {!isTerminal && (
                         <div className="mb-3">
-                          <div className="flex justify-between items-center mb-1.5">
-                            <span className="text-gray-600 text-sm">
-                              Application Progress
-                            </span>
-                            <span className="text-indigo-600 text-sm">
-                              {progress}%
-                            </span>
+                          {/* Labels */}
+                          <div className="grid grid-cols-3 gap-1 mb-1 text-xs text-gray-500">
+                            <div className="text-center">Application</div>
+                            <div className="text-center">Essay</div>
+                            <div className="text-center">Rec.</div>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                            <div
-                              className="bg-indigo-600 h-2 rounded-full transition-all"
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-
-                          <div className="space-y-1 text-xs">
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Application:</span>
-                              <span className="text-gray-900">
+                          
+                          {/* Progress Bar */}
+                          <div className="flex h-6 rounded-full overflow-hidden border border-gray-200">
+                            {/* Application segment */}
+                            <div className={`flex-1 flex items-center justify-center text-xs px-1 transition-colors ${
+                              getStepStatus(c.applicationStatus) === "completed"
+                                ? "bg-green-100 text-green-700 border-r border-gray-200"
+                                : getStepStatus(c.applicationStatus) === "in-progress"
+                                ? "bg-yellow-100 text-yellow-700 border-r border-gray-200"
+                                : getStepStatus(c.applicationStatus) === "rejected"
+                                ? "bg-red-100 text-red-700 border-r border-gray-200"
+                                : "bg-gray-50 text-gray-600 border-r border-gray-200"
+                            }`}>
+                              <span className="truncate text-center leading-tight">
                                 {c.applicationStatus || "Not Started"}
                               </span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Essay:</span>
-                              <span className="text-gray-900">
+                            
+                            {/* Essay segment */}
+                            <div className={`flex-1 flex items-center justify-center text-xs px-1 transition-colors ${
+                              getStepStatus(c.essayStatus) === "completed"
+                                ? "bg-green-100 text-green-700 border-r border-gray-200"
+                                : getStepStatus(c.essayStatus) === "in-progress"
+                                ? "bg-yellow-100 text-yellow-700 border-r border-gray-200"
+                                : "bg-gray-50 text-gray-600 border-r border-gray-200"
+                            }`}>
+                              <span className="truncate text-center leading-tight">
                                 {c.essayStatus || "Not Started"}
                               </span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">
-                                Recommendation:
-                              </span>
-                              <span className="text-gray-900">
+                            
+                            {/* Recommendation segment */}
+                            <div className={`flex-1 flex items-center justify-center text-xs px-1 transition-colors ${
+                              getStepStatus(c.recommendationStatus) === "completed"
+                                ? "bg-green-100 text-green-700"
+                                : getStepStatus(c.recommendationStatus) === "in-progress"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : "bg-gray-50 text-gray-600"
+                            }`}>
+                              <span className="truncate text-center leading-tight">
                                 {c.recommendationStatus || "Not Started"}
                               </span>
                             </div>
@@ -746,19 +799,29 @@ export default function DashBoard() {
                         </div>
                       )}
 
-                      <Link
-                        to="/update"
-                        state={{ backgroundLocation: location, school: c }}
-                        className="block w-full px-2 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-center text-sm sm:text-base"
-                      >
-                        Update Status
-                      </Link>
-                      <button
-                        className="block w-full px-2 py-1.5 mt-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-center text-sm sm:text-base"
-                        onClick={(e) => handleDeleteClick(c, e)}
-                      >
-                        Delete
-                      </button>
+                      <div className="flex gap-2 mb-3">
+                        <Link
+                          to="/update"
+                          state={{ backgroundLocation: location, school: c }}
+                          className="flex-1 px-3 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-center text-sm"
+                        >
+                          Update Status
+                        </Link>
+                        <button
+                          className="flex-1 px-3 py-1.5 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-center text-sm"
+                          onClick={(e) => handleDeleteClick(c, e)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+
+                      {c.deadline && (
+                        <div className="pt-1.5 border-t border-gray-100">
+                          <p className="text-gray-500 text-sm">
+                            Deadline: {formatDeadline(c.deadline)}
+                          </p>
+                        </div>
+                      )}
                     </article>
                   );
                 })}
@@ -766,218 +829,233 @@ export default function DashBoard() {
             </>
           )}
 
-          {/* Progress Section - Only show in Grid View */}
-          {viewMode === "grid" && (
-            <section className="mt-8">
-              {selectedCollege ? (
-                <div className="bg-white rounded-xl shadow-md p-4 border border-gray-100">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
-                    <div className="flex items-start gap-2">
-                      <Clock className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h2 className="text-gray-900 mb-0.5">
-                          Application Progress
-                        </h2>
-                        <p className="text-gray-600">
-                          Complete these steps for {selectedCollege.name}
-                        </p>
+          {/* Progress Section - Only show in Desktop Grid View */}
+          {viewMode === "grid" && !isMobile && (
+            <section className="dashboard-section-gap">
+              <div className="flex items-center justify-center">
+                {selectedCollege ? (
+                  <div className="bg-white rounded-xl shadow-md dashboard-progress-card border border-gray-100 w-full">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
+                      <div className="flex items-start gap-2">
+                        <Clock className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <h2 className="text-gray-900 mb-0.5">
+                            Application Progress
+                          </h2>
+                          <p className="text-gray-600">
+                            Complete these steps for {selectedCollege.name}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:self-start">
+                        <button
+                          onClick={openNotesModal}
+                          className="px-3 py-1 rounded-full text-white shadow-sm hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed order-1 sm:order-1 w-full sm:w-auto text-center whitespace-nowrap flex-shrink-0"
+                          style={{
+                            backgroundImage:
+                              "linear-gradient(90deg, #fbc940ff, #fbc940ff)",
+                          }}
+                          disabled={!selectedCollege}
+                        >
+                          My Notes
+                        </button>
+                        <div className="flex items-center gap-1.5 bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full whitespace-nowrap order-2 sm:order-2">
+                          <span>{calculateProgress(selectedCollege)}% Complete</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:self-start">
-                      <button
-                        onClick={openNotesModal}
-                        className="px-3 py-1 rounded-full text-white shadow-sm hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed order-1 sm:order-1 w-full sm:w-auto text-center whitespace-nowrap flex-shrink-0"
-                        style={{
-                          backgroundImage:
-                            "linear-gradient(90deg, #fbc940ff, #fbc940ff)",
-                        }}
-                        disabled={!selectedCollege}
-                      >
-                        My Notes
-                      </button>
-                      <div className="flex items-center gap-1.5 bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full whitespace-nowrap order-2 sm:order-2">
-                        <span>{calculateProgress(selectedCollege)}% Complete</span>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-gray-700">Overall Progress</span>
-                      <span className="text-gray-500">
-                        {selectedTerminalLabel
-                          ? selectedTerminalLabel
-                          : `${selectedCompletedStepsCount}/3 steps`}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-indigo-600 h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${calculateProgress(selectedCollege)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div
-                      className={`p-3 rounded-lg border-2 transition-all ${
-                        getStepStatus(selectedCollege.applicationStatus) ===
-                        "completed"
-                          ? "bg-green-50 border-green-200"
-                          : getStepStatus(selectedCollege.applicationStatus) ===
-                            "in-progress"
-                          ? "bg-yellow-50 border-yellow-200"
-                          : getStepStatus(selectedCollege.applicationStatus) ===
-                            "rejected"
-                          ? "bg-red-50 border-red-200"
-                          : "bg-gray-50 border-gray-200"
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        {getStepStatus(selectedCollege.applicationStatus) ===
-                        "completed" ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-600" />
-                        ) : getStepStatus(selectedCollege.applicationStatus) ===
-                          "in-progress" ? (
-                          <Clock className="w-4 h-4 text-yellow-600" />
-                        ) : getStepStatus(selectedCollege.applicationStatus) ===
-                          "rejected" ? (
-                          <Circle className="w-4 h-4 text-red-500" />
-                        ) : (
-                          <Circle className="w-4 h-4 text-gray-400" />
-                        )}
-                        <h3 className="text-gray-900">Application</h3>
-                      </div>
-                      <p
-                        className={`${
-                          getStepStatus(selectedCollege.applicationStatus) ===
-                          "completed"
-                            ? "text-green-700"
-                            : getStepStatus(
-                                selectedCollege.applicationStatus
-                              ) === "in-progress"
-                            ? "text-yellow-700"
-                            : getStepStatus(
-                                selectedCollege.applicationStatus
-                              ) === "rejected"
-                            ? "text-red-700"
-                            : "text-gray-600"
-                        }`}
-                      >
-                        {selectedCollege.applicationStatus || "Not Started"}
-                      </p>
-                    </div>
-
-                    <div
-                      className={`p-3 rounded-lg border-2 transition-all ${
-                        getStepStatus(selectedCollege.essayStatus) === "completed"
-                          ? "bg-green-50 border-green-200"
-                          : getStepStatus(selectedCollege.essayStatus) ===
-                            "in-progress"
-                          ? "bg-yellow-50 border-yellow-200"
-                          : "bg-gray-50 border-gray-200"
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        {getStepStatus(selectedCollege.essayStatus) ===
-                        "completed" ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-600" />
-                        ) : getStepStatus(selectedCollege.essayStatus) ===
-                          "in-progress" ? (
-                          <Clock className="w-4 h-4 text-yellow-600" />
-                        ) : (
-                          <Circle className="w-4 h-4 text-gray-400" />
-                        )}
-                        <h3 className="text-gray-900">Essay</h3>
-                      </div>
-                      <p
-                        className={`${
-                          getStepStatus(selectedCollege.essayStatus) ===
-                          "completed"
-                            ? "text-green-700"
-                            : getStepStatus(selectedCollege.essayStatus) ===
-                              "in-progress"
-                            ? "text-yellow-700"
-                            : "text-gray-600"
-                        }`}
-                      >
-                        {selectedCollege.essayStatus || "Not Started"}
-                      </p>
-                    </div>
-
-                    <div
-                      className={`p-3 rounded-lg border-2 transition-all ${
-                        getStepStatus(selectedCollege.recommendationStatus) ===
-                        "completed"
-                          ? "bg-green-50 border-green-200"
-                          : getStepStatus(
-                              selectedCollege.recommendationStatus
-                            ) === "in-progress"
-                          ? "bg-yellow-50 border-yellow-200"
-                          : "bg-gray-50 border-gray-200"
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        {getStepStatus(selectedCollege.recommendationStatus) ===
-                        "completed" ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-600" />
-                        ) : getStepStatus(
-                            selectedCollege.recommendationStatus
-                          ) === "in-progress" ? (
-                          <Clock className="w-4 h-4 text-yellow-600" />
-                        ) : (
-                          <Circle className="w-4 h-4 text-gray-400" />
-                        )}
-                        <h3 className="text-gray-900">Recommendations</h3>
-                      </div>
-                      <p
-                        className={`${
-                          getStepStatus(selectedCollege.recommendationStatus) ===
-                          "completed"
-                            ? "text-green-700"
-                            : getStepStatus(
-                                selectedCollege.recommendationStatus
-                              ) === "in-progress"
-                            ? "text-yellow-700"
-                            : "text-gray-600"
-                        }`}
-                      >
-                        {selectedCollege.recommendationStatus || "Not Started"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {selectedCollege.deadline && (
-                    <div className="mt-4 pt-3 border-t border-gray-200">
-                      <div className="flex items-center gap-1.5 text-gray-700">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>
-                          Deadline:{" "}
-                          <strong>
-                            {new Date(
-                              selectedCollege.deadline
-                            ).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </strong>
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-gray-700">Overall Progress</span>
+                        <span className="text-gray-500">
+                          {selectedTerminalLabel
+                            ? selectedTerminalLabel
+                            : `${selectedCompletedStepsCount}/3 steps`}
                         </span>
                       </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${calculateProgress(selectedCollege)}%`,
+                          }}
+                        />
+                      </div>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="bg-white rounded-xl shadow-md p-8 border border-gray-100 text-center">
-                  <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <h2 className="text-gray-900 mb-1.5">Select a College</h2>
-                  <p className="text-gray-600">
-                    Click on a college card above to view its application progress
-                  </p>
-                </div>
-              )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div
+                        className={`progress-step-indicator flex rounded-lg border-2 transition-all ${
+                          isTerminalStatus(selectedCollege.applicationStatus)
+                            ? "sm:col-span-3"
+                            : ""
+                        } ${
+                          getStepStatus(selectedCollege.applicationStatus) ===
+                          "completed"
+                            ? "bg-green-50 border-green-200"
+                            : getStepStatus(selectedCollege.applicationStatus) ===
+                              "in-progress"
+                            ? "bg-yellow-50 border-yellow-200"
+                            : getStepStatus(selectedCollege.applicationStatus) ===
+                              "waitlisted"
+                            ? "bg-orange-50 border-orange-200"
+                            : getStepStatus(selectedCollege.applicationStatus) ===
+                              "rejected"
+                            ? "bg-red-50 border-red-200"
+                            : "bg-gray-50 border-gray-200"
+                        }`}
+                      >
+                        <div className="progress-step-title flex items-center gap-1.5">
+                          {getStepStatus(selectedCollege.applicationStatus) ===
+                          "completed" ? (
+                            <CheckCircle2 className="progress-step-icon w-4 h-4 text-green-600" />
+                          ) : getStepStatus(selectedCollege.applicationStatus) ===
+                            "in-progress" ? (
+                            <Clock className="progress-step-icon w-4 h-4 text-yellow-600" />
+                          ) : getStepStatus(selectedCollege.applicationStatus) ===
+                            "waitlisted" ? (
+                            <Clock className="progress-step-icon w-4 h-4 text-orange-600" />
+                          ) : getStepStatus(selectedCollege.applicationStatus) ===
+                            "rejected" ? (
+                            <Circle className="progress-step-icon w-4 h-4 text-red-500" />
+                          ) : (
+                            <Circle className="progress-step-icon w-4 h-4 text-gray-400" />
+                          )}
+                          <h3 className="text-gray-900">Application</h3>
+                        </div>
+                        <p
+                          className={`progress-step-status ${
+                            getStepStatus(selectedCollege.applicationStatus) ===
+                            "completed"
+                              ? "text-green-700"
+                              : getStepStatus(
+                                  selectedCollege.applicationStatus
+                                ) === "in-progress"
+                              ? "text-yellow-700"
+                              : getStepStatus(
+                                  selectedCollege.applicationStatus
+                                ) === "waitlisted"
+                              ? "text-orange-700"
+                              : getStepStatus(
+                                  selectedCollege.applicationStatus
+                                ) === "rejected"
+                              ? "text-red-700"
+                              : "text-gray-600"
+                          }`}
+                        >
+                          {selectedCollege.applicationStatus || "Not Started"}
+                        </p>
+                      </div>
+
+                      {/* Only show Essay and Recommendations if not in terminal status */}
+                      {!isTerminalStatus(selectedCollege.applicationStatus) && (
+                        <>
+                          <div
+                            className={`progress-step-indicator flex rounded-lg border-2 transition-all ${
+                              getStepStatus(selectedCollege.essayStatus) === "completed"
+                                ? "bg-green-50 border-green-200"
+                                : getStepStatus(selectedCollege.essayStatus) ===
+                                  "in-progress"
+                                ? "bg-yellow-50 border-yellow-200"
+                                : "bg-gray-50 border-gray-200"
+                            }`}
+                          >
+                            <div className="progress-step-title flex items-center gap-1.5">
+                              {getStepStatus(selectedCollege.essayStatus) ===
+                              "completed" ? (
+                                <CheckCircle2 className="progress-step-icon w-4 h-4 text-green-600" />
+                              ) : getStepStatus(selectedCollege.essayStatus) ===
+                                "in-progress" ? (
+                                <Clock className="progress-step-icon w-4 h-4 text-yellow-600" />
+                              ) : (
+                                <Circle className="progress-step-icon w-4 h-4 text-gray-400" />
+                              )}
+                              <h3 className="text-gray-900">Essay</h3>
+                            </div>
+                            <p
+                              className={`progress-step-status ${
+                                getStepStatus(selectedCollege.essayStatus) ===
+                                "completed"
+                                  ? "text-green-700"
+                                  : getStepStatus(selectedCollege.essayStatus) ===
+                                    "in-progress"
+                                  ? "text-yellow-700"
+                                  : "text-gray-600"
+                              }`}
+                            >
+                              {selectedCollege.essayStatus || "Not Started"}
+                            </p>
+                          </div>
+
+                          <div
+                            className={`progress-step-indicator flex rounded-lg border-2 transition-all ${
+                              getStepStatus(selectedCollege.recommendationStatus) ===
+                              "completed"
+                                ? "bg-green-50 border-green-200"
+                                : getStepStatus(
+                                    selectedCollege.recommendationStatus
+                                  ) === "in-progress"
+                                ? "bg-yellow-50 border-yellow-200"
+                                : "bg-gray-50 border-gray-200"
+                            }`}
+                          >
+                            <div className="progress-step-title flex items-center gap-1.5">
+                              {getStepStatus(selectedCollege.recommendationStatus) ===
+                              "completed" ? (
+                                <CheckCircle2 className="progress-step-icon w-4 h-4 text-green-600" />
+                              ) : getStepStatus(
+                                  selectedCollege.recommendationStatus
+                                ) === "in-progress" ? (
+                                <Clock className="progress-step-icon w-4 h-4 text-yellow-600" />
+                              ) : (
+                                <Circle className="progress-step-icon w-4 h-4 text-gray-400" />
+                              )}
+                              <h3 className="text-gray-900">Recommendations</h3>
+                            </div>
+                            <p
+                              className={`progress-step-status ${
+                                getStepStatus(selectedCollege.recommendationStatus) ===
+                                "completed"
+                                  ? "text-green-700"
+                                  : getStepStatus(
+                                      selectedCollege.recommendationStatus
+                                    ) === "in-progress"
+                                  ? "text-yellow-700"
+                                  : "text-gray-600"
+                              }`}
+                            >
+                              {selectedCollege.recommendationStatus || "Not Started"}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {selectedCollege.deadline && (
+                      <div className="mt-4 pt-3 border-t border-gray-200">
+                        <div className="flex items-center gap-1.5 text-gray-700">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>
+                            Deadline:{" "}
+                            <strong>
+                              {formatDeadline(selectedCollege.deadline)}
+                            </strong>
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-xl shadow-md p-8 border border-gray-100 text-center">
+                    <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <h2 className="text-gray-900 mb-1.5">Select a College</h2>
+                    <p className="text-gray-600">
+                      Click on a college card above to view its application progress
+                    </p>
+                  </div>
+                )}
+              </div>
             </section>
           )}
         </>

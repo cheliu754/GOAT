@@ -9,9 +9,6 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 text-sm">
           <div className="flex items-center gap-2 flex-shrink-0">
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-sm">
-                <span className="text-white text-base">🎓</span>
-              </div>
               <div>
                 <div className="text-white leading-tight">CollegeTrack</div>
                 <div className="text-[11px] text-gray-400">Application manager</div>

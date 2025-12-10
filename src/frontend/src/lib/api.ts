@@ -1,4 +1,5 @@
-const API_BASE_RAW = import.meta.env.VITE_API_BASE_URL;
+// const API_BASE_RAW = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_RAW = "https://cs409.api.illinihouse.space";
 const API_BASE = API_BASE_RAW ? API_BASE_RAW.replace(/\/$/, "") : "";
 
 type RequestOptions = {
